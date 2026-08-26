@@ -1,0 +1,11 @@
+# Local documents
+/docs/
+
+# IDE
+/.vscode/
+/.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
