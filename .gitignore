@@ -4,8 +4,16 @@
 # IDE
 /.vscode/
 /.idea/
+/.github/
 *.iml
 
 # OS
 .DS_Store
 Thumbs.db
+
+# AI
+/.agents/
+/.codex/
+/.claude/
+AGENTS.md
+CLAUDE.md
