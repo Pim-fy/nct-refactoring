@@ -1,0 +1,141 @@
+package negocut.member.service;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.regex.Pattern;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
+import negocut.auth.entity.VerificationPurpose;
+import negocut.auth.service.EmailVerificationService;
+import negocut.common.exception.BusinessException;
+import negocut.common.exception.ErrorCode;
+import negocut.common.exception.InputInvalidException;
+import negocut.common.response.ErrorResult;
+import negocut.member.dto.AvailabilityResponse;
+import negocut.member.dto.MemberPatterns;
+import negocut.member.dto.SignUpRequest;
+import negocut.member.dto.SignUpResponse;
+import negocut.member.entity.Agreement;
+import negocut.member.entity.Member;
+import negocut.member.entity.MemberAgreement;
+import negocut.member.repository.AgreementRepository;
+import negocut.member.repository.MemberAgreementRepository;
+import negocut.member.repository.MemberRepository;
+import negocut.point.entity.PointBalance;
+import negocut.point.repository.PointBalanceRepository;
+
+@Service
+@RequiredArgsConstructor
+public class MemberService {
+
+    private final MemberRepository memberRepository;
+    private final MemberAgreementRepository memberAgreementRepository;
+    private final AgreementRepository agreementRepository;
+    private final PointBalanceRepository pointBalanceRepository;
+    private final EmailVerificationService emailVerificationService;
+    private final PasswordEncoder passwordEncoder;
+
+    // 처리 흐름: 중복 검사 → 약관 동의 확인 → 검증 토큰 확인 → 계정·약관 동의 이력·포인트 잔액 생성 (기능 명세서 3-1)
+    // 검증 토큰의 사용 완료 표시까지 한 트랜잭션이라, 어느 단계든 실패하면 계정도 토큰 사용도 남지 않는다.
+    @Transactional
+    public SignUpResponse signUp(SignUpRequest request) {
+        checkDuplicates(request);
+        List<SignUpRequest.AgreementConsent> consents = request.agreements();
+        List<Agreement> effectiveAgreements = validateAgreements(consents);
+
+        emailVerificationService.consumeToken(request.verificationToken(), request.email(), VerificationPurpose.SIGN_UP);
+
+        Member member = memberRepository.save(Member.create(
+                request.loginId(),
+                passwordEncoder.encode(request.password()),
+                request.nickname(),
+                request.email(),
+                request.phone()));
+
+        LocalDateTime agreedAt = LocalDateTime.now();
+        Map<Long, Boolean> agreedById = consents.stream()
+                .collect(Collectors.toMap(consent -> consent.agreementId(), consent -> consent.isAgreed()));
+        memberAgreementRepository.saveAll(effectiveAgreements.stream()
+                .map(agreement -> MemberAgreement.create(member, agreement, agreedById.get(agreement.getId()), agreedAt))
+                .toList());
+
+        pointBalanceRepository.save(PointBalance.createEmpty(member));
+
+        return new SignUpResponse(member.getId());
+    }
+
+    public AvailabilityResponse checkLoginId(String loginId) {
+        requireFormat("loginId", loginId, MemberPatterns.LOGIN_ID, MemberPatterns.LOGIN_ID_MESSAGE);
+        return new AvailabilityResponse(!memberRepository.existsByLoginId(loginId));
+    }
+
+    public AvailabilityResponse checkNickname(String nickname) {
+        requireFormat("nickname", nickname, MemberPatterns.NICKNAME, MemberPatterns.NICKNAME_MESSAGE);
+        return new AvailabilityResponse(!memberRepository.existsByNickname(nickname));
+    }
+
+    public AvailabilityResponse checkEmail(String email) {
+        if (email == null || email.isBlank() || email.length() > 100 || !email.contains("@")) {
+            throw fieldError("email", "이메일 형식이 올바르지 않습니다.");
+        }
+        return new AvailabilityResponse(!memberRepository.existsByEmail(email));
+    }
+
+    private void checkDuplicates(SignUpRequest request) {
+        if (memberRepository.existsByLoginId(request.loginId())) {
+            throw new BusinessException(ErrorCode.MEMBER_ID_DUPLICATED);
+        }
+        if (memberRepository.existsByNickname(request.nickname())) {
+            throw new BusinessException(ErrorCode.MEMBER_NICKNAME_DUPLICATED);
+        }
+        if (memberRepository.existsByEmail(request.email())) {
+            throw new BusinessException(ErrorCode.MEMBER_EMAIL_DUPLICATED);
+        }
+    }
+
+    // 요청의 약관 목록이 "시행 중인 약관 전체"와 정확히 같고, 필수 약관에 모두 동의했는지 확인한다.
+    // 시행 중인 약관 목록을 반환한다. (API 명세서 1-2: 목록의 agreementId를 모두 담아 동의 여부와 함께 보낸다)
+    private List<Agreement> validateAgreements(List<SignUpRequest.AgreementConsent> consents) {
+        List<Agreement> effective = agreementRepository.findByActiveTrueAndEffectiveAtLessThanEqual(LocalDateTime.now());
+        Map<Long, Agreement> effectiveById = effective.stream()
+                .collect(Collectors.toMap(agreement -> agreement.getId(), Function.identity()));
+
+        Set<Long> sentIds = new HashSet<>();
+        for (SignUpRequest.AgreementConsent consent : consents) {
+            if (!effectiveById.containsKey(consent.agreementId()) || !sentIds.add(consent.agreementId())) {
+                throw fieldError("agreements", "시행 중인 약관이 아니거나 중복된 약관입니다.");
+            }
+        }
+        if (sentIds.size() != effectiveById.size()) {
+            throw fieldError("agreements", "시행 중인 모든 약관에 대한 동의 여부를 보내야 합니다.");
+        }
+        for (SignUpRequest.AgreementConsent consent : consents) {
+            if (effectiveById.get(consent.agreementId()).isRequired() && !consent.isAgreed()) {
+                throw fieldError("agreements", "필수 약관에 모두 동의해야 합니다.");
+            }
+        }
+        return effective;
+    }
+
+    private void requireFormat(String field, String value, String regex, String message) {
+        if (value == null || !Pattern.matches(regex, value)) {
+            throw fieldError(field, message);
+        }
+    }
+
+    private InputInvalidException fieldError(String field, String message) {
+        List<ErrorResult.FieldError> details = new ArrayList<>();
+        details.add(new ErrorResult.FieldError(field, message));
+        return new InputInvalidException(ErrorCode.MEMBER_INPUT_INVALID, details);
+    }
+}
