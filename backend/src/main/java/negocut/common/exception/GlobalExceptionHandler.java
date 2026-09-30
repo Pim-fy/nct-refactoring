@@ -17,6 +17,17 @@ import negocut.common.response.ErrorResult;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     
+    @ExceptionHandler(InputInvalidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInputInvalid(InputInvalidException ex){
+
+        ErrorCode errorCode = ex.getErrorCode();
+        log.warn("[InputInvalid] {}", errorCode.name());
+
+        return ResponseEntity
+            .status(errorCode.getHttpStatus())
+            .body(ApiResponse.error(ErrorResult.of(errorCode.name(), errorCode.getMessage(), ex.getDetails())));
+    }
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException ex){
 

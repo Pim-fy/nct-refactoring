@@ -5,8 +5,11 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.Customizer;
 import org.springframework.web.cors.CorsConfiguration;
@@ -36,6 +39,10 @@ public class SecurityConfig {
             .httpBasic(b -> b.disable())    // HttpBasic 인증 끔
             // URL별 접근 권한 규칙
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.GET, "/api/agreements").permitAll()  // 공개: 회원가입 화면의 약관 목록
+                .requestMatchers(HttpMethod.POST, "/api/members").permitAll()  // 공개: 회원가입
+                .requestMatchers(HttpMethod.GET, "/api/members/check-login-id", "/api/members/check-nickname", "/api/members/check-email").permitAll()  // 공개: 중복 확인
+                .requestMatchers(HttpMethod.POST, "/api/auth/email-codes", "/api/auth/email-codes/verify").permitAll()  // 공개: 이메일 인증번호 발송·검증
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")  // 권한 필요
                 .anyRequest().authenticated())  // anyRequest로 나머지를 받음
             .exceptionHandling(e -> e
@@ -43,6 +50,12 @@ public class SecurityConfig {
                 .accessDeniedHandler(accessDeniedHandler)); // 권한 부족
 
         return http.build();    // SecurityFilterChain을 만들어 반환
+    }
+
+    // 비밀번호는 BCrypt 해시로 저장한다.
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     // CORS 세부 규칙 정의
