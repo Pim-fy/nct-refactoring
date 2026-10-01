@@ -24,11 +24,13 @@ import negocut.common.exception.InputInvalidException;
 import negocut.common.response.ErrorResult;
 import negocut.member.dto.AvailabilityResponse;
 import negocut.member.dto.MemberPatterns;
+import negocut.member.dto.MyInfoResponse;
 import negocut.member.dto.SignUpRequest;
 import negocut.member.dto.SignUpResponse;
 import negocut.member.entity.Agreement;
 import negocut.member.entity.Member;
 import negocut.member.entity.MemberAgreement;
+import negocut.member.entity.MemberStatus;
 import negocut.member.repository.AgreementRepository;
 import negocut.member.repository.MemberAgreementRepository;
 import negocut.member.repository.MemberRepository;
@@ -76,6 +78,24 @@ public class MemberService {
         pointBalanceRepository.save(PointBalance.createEmpty(member));
 
         return new SignUpResponse(member.getId());
+    }
+
+    // 로그인한 회원의 현재 정보와 포인트. 화면이 로그인 상태를 복원할 때도 쓴다. (API 명세서 1-2)
+    // 로그인 후에 정지·탈퇴된 회원은 액세스 토큰이 아직 유효해도 현재 상태를 기준으로 막는다.
+    @Transactional(readOnly = true)
+    public MyInfoResponse getMyInfo(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTHENTICATION_REQUIRED));
+
+        MemberStatus status = member.getMemberStatus();
+        if (status == MemberStatus.RESTRICTED_LOGIN || status == MemberStatus.WITHDRAWN) {
+            throw new BusinessException(ErrorCode.MEMBER_STATUS_NOT_ALLOWED);
+        }
+
+        // 가입할 때 포인트 잔액을 함께 만들므로 항상 있어야 한다.
+        PointBalance balance = pointBalanceRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new IllegalStateException("포인트 잔액이 없는 회원입니다. memberId=" + memberId));
+        return MyInfoResponse.of(member, balance);
     }
 
     public AvailabilityResponse checkLoginId(String loginId) {

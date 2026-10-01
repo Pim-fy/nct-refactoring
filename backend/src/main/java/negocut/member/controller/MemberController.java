@@ -1,5 +1,6 @@
 package negocut.member.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,7 @@ import negocut.common.exception.ErrorCode;
 import negocut.common.exception.InputInvalidException;
 import negocut.common.response.ApiResponse;
 import negocut.member.dto.AvailabilityResponse;
+import negocut.member.dto.MyInfoResponse;
 import negocut.member.dto.SignUpRequest;
 import negocut.member.dto.SignUpResponse;
 import negocut.member.service.MemberService;
@@ -31,6 +33,11 @@ public class MemberController {
     public ApiResponse<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request, BindingResult bindingResult) {
         InputInvalidException.throwIfInvalid(bindingResult, ErrorCode.MEMBER_INPUT_INVALID);
         return ApiResponse.success(memberService.signUp(request));
+    }
+
+    @GetMapping("/me")
+    public ApiResponse<MyInfoResponse> me(@AuthenticationPrincipal Long memberId) {
+        return ApiResponse.success(memberService.getMyInfo(memberId));
     }
 
     // 파라미터가 없을 때도 500이 아니라 입력값 오류로 응답하도록 required=false로 받는다.
