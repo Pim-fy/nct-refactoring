@@ -4,6 +4,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,10 @@ import negocut.auth.repository.EmailVerificationRepository;
 import negocut.auth.token.VerificationTokenProvider;
 import negocut.common.exception.BusinessException;
 import negocut.common.exception.ErrorCode;
+import negocut.common.exception.InputInvalidException;
+import negocut.common.response.ErrorResult;
+import negocut.member.entity.MemberStatus;
+import negocut.member.repository.MemberRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +35,7 @@ public class EmailVerificationService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final EmailVerificationRepository verificationRepository;
+    private final MemberRepository memberRepository;
     private final VerificationMailSender mailSender;
     private final VerificationTokenProvider tokenProvider;
 
@@ -38,6 +44,12 @@ public class EmailVerificationService {
     public EmailCodeSendResponse sendCode(EmailCodeSendRequest request) {
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(CODE_VALID_MINUTES);
+
+        // 일치하는 계정이 없으면 이력도 메일도 만들지 않지만, 응답은 발송했을 때와 같은 형태로 돌려준다.
+        // 그래야 응답만 보고 계정 존재 여부를 알 수 없다. (기능 명세서 3-2, API-4)
+        if (!isAccountMatched(request)) {
+            return new EmailCodeSendResponse(toOffset(expiresAt));
+        }
 
         verificationRepository.save(EmailVerification.create(request.email(), request.purpose(), code, expiresAt));
         mailSender.send(request.email(), code);
@@ -79,6 +91,27 @@ public class EmailVerificationService {
             throw new BusinessException(ErrorCode.VERIFICATION_TOKEN_INVALID);
         }
         verification.markUsed();
+    }
+
+    // 용도별로 계정 일치를 확인한다. 회원가입은 확인할 계정이 없어 항상 통과한다.
+    // 아이디 찾기는 닉네임+이메일, 비밀번호 재설정은 로그인 ID+이메일이 모두 맞는 계정이 있어야 한다.
+    // 필요한 값이 빠진 요청은 계정 존재 여부와 무관한 입력 오류라 400으로 알린다.
+    private boolean isAccountMatched(EmailCodeSendRequest request) {
+        return switch (request.purpose()) {
+            case SIGN_UP -> true;
+            case FIND_ID -> memberRepository.existsByNicknameAndEmailAndMemberStatusNot(
+                    requireText("nickname", request.nickname()), request.email(), MemberStatus.WITHDRAWN);
+            case RESET_PASSWORD -> memberRepository.existsByLoginIdAndEmailAndMemberStatusNot(
+                    requireText("loginId", request.loginId()), request.email(), MemberStatus.WITHDRAWN);
+        };
+    }
+
+    private String requireText(String field, String value) {
+        if (value == null || value.isBlank()) {
+            throw new InputInvalidException(ErrorCode.INVALID_INPUT_VALUE,
+                    List.of(new ErrorResult.FieldError(field, "필수 입력값입니다.")));
+        }
+        return value;
     }
 
     private OffsetDateTime toOffset(LocalDateTime time) {
