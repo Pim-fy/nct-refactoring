@@ -1,4 +1,3 @@
-import { Spin } from 'antd';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -9,7 +8,12 @@ export default function ProtectedRoute() {
   const location = useLocation();
 
   if (loading) {
-    return <Spin fullscreen />;   // 로그인 상태를 확인하는 동안 기다린다.
+    // 로그인 상태를 확인하는 동안 기다린다.
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary" />
+      </div>
+    );
   }
   if (!user) {
     const redirect = encodeURIComponent(location.pathname + location.search);

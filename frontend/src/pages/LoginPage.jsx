@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { App, Button, Card, Checkbox, Form, Input, Typography } from 'antd';
+import { useForm } from 'react-hook-form';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { getErrorMessage } from '../api/apiResponse';
+import FormField from '../components/FormField';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 
 const SAVED_LOGIN_ID_KEY = 'nct.savedLoginId';
 
@@ -35,11 +37,18 @@ function safeRedirect(value) {
 
 export default function LoginPage() {
   const { user, loading, login } = useAuth();
-  const { message } = App.useApp();
+  const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [submitting, setSubmitting] = useState(false);
   const [initialLoginId] = useState(readSavedLoginId);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },   // isSubmitting은 제출이 끝날 때까지 true라 버튼을 잠가 중복 전송을 줄인다.
+  } = useForm({
+    defaultValues: { loginId: initialLoginId, password: '', keepLogin: false, saveLoginId: Boolean(initialLoginId) },
+  });
 
   const redirectTo = safeRedirect(searchParams.get('redirect'));
 
@@ -48,59 +57,65 @@ export default function LoginPage() {
     return <Navigate to={redirectTo} replace />;
   }
 
-  async function handleFinish(values) {
-    setSubmitting(true);   // 제출하는 동안 버튼을 잠가 중복 전송을 줄인다.
+  async function onSubmit(values) {
     try {
-      await login({
-        loginId: values.loginId,
-        password: values.password,
-        isKeepLogin: Boolean(values.keepLogin),
-      });
+      await login({ loginId: values.loginId, password: values.password, isKeepLogin: values.keepLogin });
       writeSavedLoginId(values.saveLoginId ? values.loginId : '');
       navigate(redirectTo, { replace: true });
     } catch (error) {
-      message.error(getErrorMessage(error));
-    } finally {
-      setSubmitting(false);
+      toast.error(getErrorMessage(error));
     }
   }
 
   return (
-    <Card style={{ maxWidth: 400, margin: '48px auto' }}>
-      <Typography.Title level={3} style={{ textAlign: 'center' }}>
-        로그인
-      </Typography.Title>
+    <div className="card mx-auto mt-12 max-w-sm bg-base-100 shadow-sm">
+      <div className="card-body">
+        <h1 className="mb-2 text-center text-2xl font-bold">로그인</h1>
 
-      <Form
-        layout="vertical"
-        onFinish={handleFinish}
-        initialValues={{ loginId: initialLoginId, saveLoginId: Boolean(initialLoginId), keepLogin: false }}
-      >
-        <Form.Item label="아이디" name="loginId" rules={[{ required: true, message: '아이디를 입력해 주세요.' }]}>
-          <Input autoComplete="username" />
-        </Form.Item>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <FormField label="아이디" htmlFor="loginId" error={errors.loginId?.message}>
+            <input
+              id="loginId"
+              autoComplete="username"
+              className={`input w-full ${errors.loginId ? 'input-error' : ''}`}
+              {...register('loginId', { required: '아이디를 입력해 주세요.' })}
+            />
+          </FormField>
 
-        <Form.Item label="비밀번호" name="password" rules={[{ required: true, message: '비밀번호를 입력해 주세요.' }]}>
-          <Input.Password autoComplete="current-password" />
-        </Form.Item>
+          <FormField label="비밀번호" htmlFor="password" error={errors.password?.message}>
+            <input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              className={`input w-full ${errors.password ? 'input-error' : ''}`}
+              {...register('password', { required: '비밀번호를 입력해 주세요.' })}
+            />
+          </FormField>
 
-        <Form.Item>
-          <Form.Item name="keepLogin" valuePropName="checked" noStyle>
-            <Checkbox>로그인 유지</Checkbox>
-          </Form.Item>
-          <Form.Item name="saveLoginId" valuePropName="checked" noStyle>
-            <Checkbox>아이디 저장</Checkbox>
-          </Form.Item>
-        </Form.Item>
+          <div className="mb-4 flex gap-4 text-sm">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" className="checkbox checkbox-sm checkbox-primary" {...register('keepLogin')} />
+              로그인 유지
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" className="checkbox checkbox-sm checkbox-primary" {...register('saveLoginId')} />
+              아이디 저장
+            </label>
+          </div>
 
-        <Button type="primary" htmlType="submit" block loading={submitting}>
-          로그인
-        </Button>
-      </Form>
+          <button type="submit" className="btn btn-primary w-full" disabled={isSubmitting}>
+            {isSubmitting && <span className="loading loading-spinner loading-sm" />}
+            로그인
+          </button>
+        </form>
 
-      <div style={{ marginTop: 16, textAlign: 'center' }}>
-        아직 회원이 아니신가요? <Link to="/signup">회원가입</Link>
+        <p className="mt-4 text-center text-sm">
+          아직 회원이 아니신가요?{' '}
+          <Link to="/signup" className="link link-primary">
+            회원가입
+          </Link>
+        </p>
       </div>
-    </Card>
+    </div>
   );
 }
