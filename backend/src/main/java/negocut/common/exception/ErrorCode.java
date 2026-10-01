@@ -13,6 +13,9 @@ public enum ErrorCode {
     ENDPOINT_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 주소를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "허용되지 않는 요청 방식입니다."),
 
+    // 중복 요청
+    IDEMPOTENCY_PROCESSING(HttpStatus.CONFLICT, "같은 요청을 처리 중입니다. 잠시 후 다시 시도해 주세요."),
+
     // 회원
     MEMBER_INPUT_INVALID(HttpStatus.BAD_REQUEST, "입력값을 확인해 주세요."),
     MEMBER_ID_DUPLICATED(HttpStatus.BAD_REQUEST, "이미 사용 중인 아이디입니다."),
