@@ -11,12 +11,15 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.Customizer;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import lombok.RequiredArgsConstructor;
+import negocut.auth.security.JwtAuthenticationFilter;
+import negocut.auth.token.JwtTokenProvider;
 
 @Configuration
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class SecurityConfig {
 
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
@@ -40,11 +44,14 @@ public class SecurityConfig {
             // URL별 접근 권한 규칙
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/agreements").permitAll()  // 공개: 회원가입 화면의 약관 목록
+                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()  // 공개: 로그인, 토큰 재발급 (로그아웃은 로그인한 회원만)
                 .requestMatchers(HttpMethod.POST, "/api/members").permitAll()  // 공개: 회원가입
                 .requestMatchers(HttpMethod.GET, "/api/members/check-login-id", "/api/members/check-nickname", "/api/members/check-email").permitAll()  // 공개: 중복 확인
                 .requestMatchers(HttpMethod.POST, "/api/auth/email-codes", "/api/auth/email-codes/verify").permitAll()  // 공개: 이메일 인증번호 발송·검증
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")  // 권한 필요
                 .anyRequest().authenticated())  // anyRequest로 나머지를 받음
+            // 액세스 토큰 쿠키로 로그인한 회원을 인증한다. 기본 로그인 필터보다 먼저 실행한다.
+            .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(e -> e
                 .authenticationEntryPoint(authenticationEntryPoint) // 인증 실패
                 .accessDeniedHandler(accessDeniedHandler)); // 권한 부족

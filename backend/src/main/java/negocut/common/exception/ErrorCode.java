@@ -22,6 +22,11 @@ public enum ErrorCode {
     MEMBER_NICKNAME_DUPLICATED(HttpStatus.BAD_REQUEST, "이미 사용 중인 닉네임입니다."),
     MEMBER_EMAIL_DUPLICATED(HttpStatus.BAD_REQUEST, "이미 사용 중인 이메일입니다."),
 
+    // 로그인·토큰
+    LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다."),
+    MEMBER_STATUS_NOT_ALLOWED(HttpStatus.FORBIDDEN, "이용할 수 없는 계정입니다."),
+    REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요."),
+
     // 이메일 인증
     VERIFICATION_CODE_INVALID(HttpStatus.BAD_REQUEST, "인증번호가 올바르지 않습니다."),
     VERIFICATION_CODE_EXPIRED(HttpStatus.CONFLICT, "인증번호가 만료되었습니다. 다시 발송해 주세요."),

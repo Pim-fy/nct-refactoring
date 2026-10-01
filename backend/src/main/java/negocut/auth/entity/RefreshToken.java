@@ -43,4 +43,21 @@ public class RefreshToken extends BaseTimeEntity {
 
     @Column(name = "is_revoked", nullable = false)
     private boolean revoked;    // 폐기(revoke) 여부
+
+    public static RefreshToken create(Member member, String tokenHash, LocalDateTime expiresAt) {
+        RefreshToken token = new RefreshToken();
+        token.member = member;
+        token.tokenHash = tokenHash;
+        token.expiresAt = expiresAt;
+        token.revoked = false;
+        return token;
+    }
+
+    public boolean isExpired(LocalDateTime now) {
+        return !expiresAt.isAfter(now);
+    }
+
+    public void revoke() {
+        this.revoked = true;
+    }
 }

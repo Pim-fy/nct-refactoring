@@ -1,11 +1,15 @@
 package negocut.member.repository;
 
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import negocut.member.entity.Member;
 import negocut.member.entity.MemberStatus;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
+
+    Optional<Member> findByLoginId(String loginId);
 
     boolean existsByLoginId(String loginId);
 
