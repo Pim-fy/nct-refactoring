@@ -234,6 +234,16 @@ class MemberSignUpTest {
     }
 
     @Test
+    void 위조된_검증_토큰으로는_가입할_수_없다() throws Exception {
+        Account a = Account.unique(suffix());
+
+        signUp(signUpBody(a, "abcd1234", "not-a-valid-token", agreementsJson(true)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VERIFICATION_TOKEN_INVALID"));
+        assertThat(memberRepository.existsByLoginId(a.loginId())).isFalse();
+    }
+
+    @Test
     void 비밀번호가_72바이트를_넘으면_500이_아니라_400이다() throws Exception {
         Account a = Account.unique(suffix());
         String token = issueToken(a.email());

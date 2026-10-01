@@ -6,10 +6,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +23,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
 import negocut.auth.entity.RefreshToken;
 import negocut.auth.repository.RefreshTokenRepository;
@@ -39,6 +45,7 @@ class AuthLoginTest {
     @Autowired private MemberRepository memberRepository;
     @Autowired private RefreshTokenRepository refreshTokenRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Value("${app.jwt.secret}") private String jwtSecret;
 
     private Member createMember(MemberStatus status, MemberRole role) {
         String n = String.valueOf(System.nanoTime());
@@ -292,5 +299,36 @@ class AuthLoginTest {
         mockMvc.perform(post("/api/auth/refresh").cookie(new Cookie("REFRESH_TOKEN", cookieValue(loginResult, "REFRESH_TOKEN"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("MEMBER_STATUS_NOT_ALLOWED"));
+    }
+
+    // 같은 서명 키로 이미 만료된 토큰을 만든다. (시간이 지나기를 기다리지 않고 만료 동작을 확인한다.)
+    private String expiredToken(String type, Long memberId) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .subject(String.valueOf(memberId))
+                .claim("typ", type)
+                .claim("role", "MEMBER")
+                .issuedAt(Date.from(now.minusSeconds(7200)))
+                .expiration(Date.from(now.minusSeconds(3600)))
+                .signWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+    }
+
+    @Test
+    void 만료된_액세스_토큰은_인증되지_않는다() throws Exception {
+        Member member = createMember();
+
+        mockMvc.perform(post("/api/auth/logout").cookie(new Cookie("ACCESS_TOKEN", expiredToken("access", member.getId()))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("AUTHENTICATION_REQUIRED"));
+    }
+
+    @Test
+    void 만료된_리프레시_토큰으로는_재발급할_수_없다() throws Exception {
+        Member member = createMember();
+
+        mockMvc.perform(post("/api/auth/refresh").cookie(new Cookie("REFRESH_TOKEN", expiredToken("refresh", member.getId()))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("REFRESH_TOKEN_INVALID"));
     }
 }
