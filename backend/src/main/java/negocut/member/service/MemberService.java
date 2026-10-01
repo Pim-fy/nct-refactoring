@@ -1,5 +1,6 @@
 package negocut.member.service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -38,6 +39,8 @@ import negocut.point.repository.PointBalanceRepository;
 @RequiredArgsConstructor
 public class MemberService {
 
+    private static final int BCRYPT_MAX_BYTES = 72;
+
     private final MemberRepository memberRepository;
     private final MemberAgreementRepository memberAgreementRepository;
     private final AgreementRepository agreementRepository;
@@ -49,6 +52,7 @@ public class MemberService {
     // 검증 토큰의 사용 완료 표시까지 한 트랜잭션이라, 어느 단계든 실패하면 계정도 토큰 사용도 남지 않는다.
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
+        checkPasswordBytes(request.password());
         checkDuplicates(request);
         List<SignUpRequest.AgreementConsent> consents = request.agreements();
         List<Agreement> effectiveAgreements = validateAgreements(consents);
@@ -89,6 +93,13 @@ public class MemberService {
             throw fieldError("email", "이메일 형식이 올바르지 않습니다.");
         }
         return new AvailabilityResponse(!memberRepository.existsByEmail(email));
+    }
+
+    // BCrypt는 72바이트까지만 다룬다. 형식 검사는 글자 수만 보므로, 한글처럼 한 글자가 여러 바이트인 비밀번호는 여기서 거른다.
+    private void checkPasswordBytes(String password) {
+        if (password.getBytes(StandardCharsets.UTF_8).length > BCRYPT_MAX_BYTES) {
+            throw fieldError("password", "비밀번호가 너무 깁니다. 영문·숫자 기준 72자(한글은 24자) 이하여야 합니다.");
+        }
     }
 
     private void checkDuplicates(SignUpRequest request) {

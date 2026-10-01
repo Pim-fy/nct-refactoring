@@ -234,6 +234,19 @@ class MemberSignUpTest {
     }
 
     @Test
+    void 비밀번호가_72바이트를_넘으면_500이_아니라_400이다() throws Exception {
+        Account a = Account.unique(suffix());
+        String token = issueToken(a.email());
+        String longPassword = "가".repeat(40) + "a1";   // 42자지만 BCrypt 한계(72바이트)를 넘는다.
+
+        signUp(signUpBody(a, longPassword, token, agreementsJson(true)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("MEMBER_INPUT_INVALID"))
+                .andExpect(jsonPath("$.error.details[0].field").value("password"));
+        assertThat(memberRepository.existsByLoginId(a.loginId())).isFalse();
+    }
+
+    @Test
     void 중복_확인_API는_사용_가능_여부를_알려준다() throws Exception {
         Account a = Account.unique(suffix());
         signUp(signUpBody(a, "abcd1234", issueToken(a.email()), agreementsJson(true))).andExpect(status().isOk());
