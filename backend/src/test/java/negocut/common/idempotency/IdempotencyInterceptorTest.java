@@ -49,7 +49,7 @@ class IdempotencyInterceptorTest {
     }
 
     private MvcResult send(String path, String user, String body) throws Exception {
-        return mockMvc.perform(post(BASE + path).with(user(user)).contentType(MediaType.APPLICATION_JSON).content(body))
+        return mockMvc.perform(post(BASE + path).with(user(user).roles("MEMBER")).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andReturn();
     }
 
@@ -102,14 +102,14 @@ class IdempotencyInterceptorTest {
 
     @Test
     void DELETE도_대상이고_GET은_대상이_아니다() throws Exception {
-        mockMvc.perform(delete(BASE + "/count").with(user("tester"))).andExpect(status().isOk());
-        mockMvc.perform(delete(BASE + "/count").with(user("tester")))
+        mockMvc.perform(delete(BASE + "/count").with(user("tester").roles("MEMBER"))).andExpect(status().isOk());
+        mockMvc.perform(delete(BASE + "/count").with(user("tester").roles("MEMBER")))
                 .andExpect(status().isOk())
                 .andExpect(header().string(IdempotencyInterceptor.REPLAY_HEADER, "true"));
         assertThat(IdempotencyTestController.EXECUTIONS.get()).isEqualTo(1);
 
-        mockMvc.perform(get(BASE + "/count").with(user("tester"))).andExpect(status().isOk());
-        mockMvc.perform(get(BASE + "/count").with(user("tester")))
+        mockMvc.perform(get(BASE + "/count").with(user("tester").roles("MEMBER"))).andExpect(status().isOk());
+        mockMvc.perform(get(BASE + "/count").with(user("tester").roles("MEMBER")))
                 .andExpect(status().isOk())
                 .andExpect(header().doesNotExist(IdempotencyInterceptor.REPLAY_HEADER));
         assertThat(IdempotencyTestController.EXECUTIONS.get()).isEqualTo(3);

@@ -23,6 +23,7 @@ public record MyInfoResponse(
     public record Point(BigDecimal totalPoint, BigDecimal reservedPoint, BigDecimal availablePoint) {
     }
 
+    // 포인트 잔액이 없는 관리자 계정은 balance가 null이고, 이때 point도 null이다.
     public static MyInfoResponse of(Member member, PointBalance balance) {
         Long imageId = member.getProfileImageId();
         return new MyInfoResponse(
@@ -35,9 +36,13 @@ public record MyInfoResponse(
                 imageId == null ? null : "/api/images/" + imageId,
                 member.getMemberStatus(),
                 member.getMemberRole(),
-                new Point(
-                        balance.getTotalPoint(),
-                        balance.getReservedPoint(),
-                        balance.getTotalPoint().subtract(balance.getReservedPoint())));   // 사용 가능 = 보유 − 예약
+                balance == null ? null : toPoint(balance));
+    }
+
+    private static Point toPoint(PointBalance balance) {
+        return new Point(
+                balance.getTotalPoint(),
+                balance.getReservedPoint(),
+                balance.getTotalPoint().subtract(balance.getReservedPoint()));   // 사용 가능 = 보유 − 예약
     }
 }

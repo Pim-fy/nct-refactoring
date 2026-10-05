@@ -53,21 +53,21 @@ class ExceptionHandlingTest {
 
     @Test
     void 필수_파라미터가_없으면_400이다() throws Exception {
-        mockMvc.perform(get("/api/test/exceptions/param").with(user("tester")))
+        mockMvc.perform(get("/api/test/exceptions/param").with(user("tester").roles("MEMBER")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_INPUT_VALUE"));
     }
 
     @Test
     void 파라미터_타입이_맞지_않으면_400이다() throws Exception {
-        mockMvc.perform(get("/api/test/exceptions/param").param("n", "abc").with(user("tester")))
+        mockMvc.perform(get("/api/test/exceptions/param").param("n", "abc").with(user("tester").roles("MEMBER")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_INPUT_VALUE"));
     }
 
     @Test
     void 올바른_파라미터는_정상_처리된다() throws Exception {
-        mockMvc.perform(get("/api/test/exceptions/param").param("n", "7").with(user("tester")))
+        mockMvc.perform(get("/api/test/exceptions/param").param("n", "7").with(user("tester").roles("MEMBER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value(7));
     }

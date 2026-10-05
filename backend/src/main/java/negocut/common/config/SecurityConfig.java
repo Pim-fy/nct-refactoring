@@ -50,8 +50,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/members").permitAll()  // 공개: 회원가입
                 .requestMatchers(HttpMethod.GET, "/api/members/check-login-id", "/api/members/check-nickname", "/api/members/check-email").permitAll()  // 공개: 중복 확인
                 .requestMatchers(HttpMethod.POST, "/api/auth/email-codes", "/api/auth/email-codes/verify").permitAll()  // 공개: 이메일 인증번호 발송·검증
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")  // 권한 필요
-                .anyRequest().authenticated())  // anyRequest로 나머지를 받음
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")  // 관리자 기능은 관리자만
+                // 관리자는 관리자 기능만 쓴다. 일반 회원 기능을 쓰려면 별도의 회원 계정을 쓴다.
+                // 아래 둘은 관리자도 써야 한다: 로그아웃, 그리고 화면이 로그인 상태를 복원하는 데 쓰는 내 정보 조회
+                .requestMatchers(HttpMethod.POST, "/api/auth/logout").hasAnyRole("MEMBER", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/members/me").hasAnyRole("MEMBER", "ADMIN")
+                .anyRequest().hasRole("MEMBER"))  // 나머지 인증 경로는 기본으로 회원만. 새 API는 기본으로 관리자에게 막힌다
             // 액세스 토큰 쿠키로 로그인한 회원을 인증하고, 회원의 현재 상태·역할을 요청마다 DB에서 읽는다. 기본 로그인 필터보다 먼저 실행한다.
             .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, memberRepository), UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(e -> e
