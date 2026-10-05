@@ -20,6 +20,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import lombok.RequiredArgsConstructor;
 import negocut.auth.security.JwtAuthenticationFilter;
 import negocut.auth.token.JwtTokenProvider;
+import negocut.member.repository.MemberRepository;
 
 @Configuration
 @RequiredArgsConstructor
@@ -28,6 +29,7 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
     private final JwtTokenProvider jwtTokenProvider;
+    private final MemberRepository memberRepository;
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
@@ -50,8 +52,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/email-codes", "/api/auth/email-codes/verify").permitAll()  // 공개: 이메일 인증번호 발송·검증
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")  // 권한 필요
                 .anyRequest().authenticated())  // anyRequest로 나머지를 받음
-            // 액세스 토큰 쿠키로 로그인한 회원을 인증한다. 기본 로그인 필터보다 먼저 실행한다.
-            .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
+            // 액세스 토큰 쿠키로 로그인한 회원을 인증하고, 회원의 현재 상태·역할을 요청마다 DB에서 읽는다. 기본 로그인 필터보다 먼저 실행한다.
+            .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, memberRepository), UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(e -> e
                 .authenticationEntryPoint(authenticationEntryPoint) // 인증 실패
                 .accessDeniedHandler(accessDeniedHandler)); // 권한 부족

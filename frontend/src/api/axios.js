@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { isMemberStatusBlocked } from './apiResponse';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -45,6 +46,14 @@ function refreshAccessToken() {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // 로그인 후 정지·탈퇴된 회원이다. 서버가 쿠키를 지웠으므로 화면의 로그인 상태도 지운다. 재발급은 시도하지 않는다.
+    if (isMemberStatusBlocked(error)) {
+      if (authFailureHandler) {
+        authFailureHandler();
+      }
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config;
     const isUnauthorized = error.response?.status === 401;
     const canRefresh =
@@ -63,8 +72,8 @@ api.interceptors.response.use(
       await refreshAccessToken();
       return api(originalRequest);  // 재발급에 성공. 원래 실패했던 요청을 다시 보냄.
     } catch (refreshError) {
-      // 재발급이 401로 거부됐을 때만 로그인 상태를 지운다. 네트워크 오류나 서버 오류는 일시적일 수 있어 로그아웃시키지 않는다.
-      if (refreshError.response?.status === 401 && authFailureHandler) {
+      // 재발급이 401로 거부되거나 정지·탈퇴 회원으로 거부됐을 때만 로그인 상태를 지운다. 네트워크 오류나 서버 오류는 일시적일 수 있어 로그아웃시키지 않는다.
+      if ((refreshError.response?.status === 401 || isMemberStatusBlocked(refreshError)) && authFailureHandler) {
         authFailureHandler();
       }
       return Promise.reject(error);  // 호출한 쪽에는 원래 요청의 오류를 그대로 알린다.

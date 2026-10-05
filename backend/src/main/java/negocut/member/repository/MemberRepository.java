@@ -11,6 +11,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByLoginId(String loginId);
 
+    // 인증 필터가 요청마다 호출한다. 역할과 상태 컬럼만 읽는다.
+    Optional<MemberAuthInfo> findAuthInfoById(Long id);
+
     boolean existsByLoginId(String loginId);
 
     boolean existsByNickname(String nickname);
