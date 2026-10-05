@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import negocut.member.dto.AgreementListResponse;
 import negocut.member.dto.AgreementResponse;
-import negocut.member.entity.Agreement;
 import negocut.member.repository.AgreementRepository;
 
 @Service
@@ -25,7 +24,7 @@ public class AgreementService {
         return new AgreementListResponse(
                 agreementRepository.findByActiveTrueAndEffectiveAtLessThanEqual(LocalDateTime.now()).stream()
                         .sorted(Comparator.comparing(agreement -> agreement.getAgreementType()))
-                        .map(AgreementResponse::from)
+                        .map(agreement -> AgreementResponse.from(agreement))
                         .toList());
     }
 }
