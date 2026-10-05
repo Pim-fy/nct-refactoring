@@ -296,9 +296,16 @@ class AuthLoginTest {
         ReflectionTestUtils.setField(member, "memberStatus", MemberStatus.RESTRICTED_LOGIN);
         memberRepository.save(member);
 
-        mockMvc.perform(post("/api/auth/refresh").cookie(new Cookie("REFRESH_TOKEN", cookieValue(loginResult, "REFRESH_TOKEN"))))
+        MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh")
+                        .cookie(new Cookie("REFRESH_TOKEN", cookieValue(loginResult, "REFRESH_TOKEN"))))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("MEMBER_STATUS_NOT_ALLOWED"));
+                .andExpect(jsonPath("$.error.code").value("MEMBER_STATUS_NOT_ALLOWED"))
+                .andReturn();
+
+        // 공개 경로인 재발급 응답도 인증 쿠키를 지운다. (액세스 토큰이 만료된 뒤에 정지된 회원이 같은 거부를 반복해서 받지 않게 한다.)
+        List<String> setCookies = refreshResult.getResponse().getHeaders(HttpHeaders.SET_COOKIE);
+        assertThat(setCookies).anyMatch(c -> c.startsWith("ACCESS_TOKEN=") && c.contains("Max-Age=0"));
+        assertThat(setCookies).anyMatch(c -> c.startsWith("REFRESH_TOKEN=") && c.contains("Max-Age=0"));
     }
 
     // 같은 서명 키로 이미 만료된 토큰을 만든다. (시간이 지나기를 기다리지 않고 만료 동작을 확인한다.)

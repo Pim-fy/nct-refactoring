@@ -27,6 +27,7 @@ public enum ErrorCode {
     // 로그인·토큰
     LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다."),
     MEMBER_STATUS_NOT_ALLOWED(HttpStatus.FORBIDDEN, "이용할 수 없는 계정입니다."),
+    MEMBER_TRADE_RESTRICTED(HttpStatus.FORBIDDEN, "이용이 제한된 계정입니다. 경매 등록, 입찰, 포인트 충전을 할 수 없습니다."),
     REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요."),
 
     // 이메일 인증

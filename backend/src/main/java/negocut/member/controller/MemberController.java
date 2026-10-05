@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import negocut.auth.security.AllowTradeRestricted;
+import negocut.auth.security.AuthMember;
 import negocut.common.exception.ErrorCode;
 import negocut.common.exception.InputInvalidException;
 import negocut.common.response.ApiResponse;
@@ -29,15 +31,17 @@ public class MemberController {
 
     // BindingResult를 받으면 형식 오류가 예외로 바로 나가지 않고 여기로 넘어와서,
     // 회원 전용 에러 코드(MEMBER_INPUT_INVALID)와 필드별 사유(details)로 응답할 수 있다.
+    // 로그아웃 상태에서 쓰는 공개 API다. 거래 제한 회원의 쿠키가 브라우저에 남아 있어도 막히지 않도록 @AllowTradeRestricted를 붙인다.
     @PostMapping
+    @AllowTradeRestricted
     public ApiResponse<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request, BindingResult bindingResult) {
         InputInvalidException.throwIfInvalid(bindingResult, ErrorCode.MEMBER_INPUT_INVALID);
         return ApiResponse.success(memberService.signUp(request));
     }
 
     @GetMapping("/me")
-    public ApiResponse<MyInfoResponse> me(@AuthenticationPrincipal Long memberId) {
-        return ApiResponse.success(memberService.getMyInfo(memberId));
+    public ApiResponse<MyInfoResponse> me(@AuthenticationPrincipal AuthMember member) {
+        return ApiResponse.success(memberService.getMyInfo(member.memberId()));
     }
 
     // 파라미터가 없을 때도 500이 아니라 입력값 오류로 응답하도록 required=false로 받는다.
