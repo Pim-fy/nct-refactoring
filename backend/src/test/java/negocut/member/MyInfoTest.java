@@ -23,6 +23,7 @@ import negocut.member.entity.MemberStatus;
 import negocut.member.repository.MemberRepository;
 import negocut.point.entity.PointBalance;
 import negocut.point.repository.PointBalanceRepository;
+import negocut.support.TestSuffix;
 
 // GET /api/members/me: 로그인한 회원의 현재 정보와 포인트
 @SpringBootTest
@@ -37,8 +38,7 @@ class MyInfoTest {
     @Autowired private PasswordEncoder passwordEncoder;
 
     private Member createMember() {
-        String n = String.valueOf(System.nanoTime());
-        String suffix = n.substring(n.length() - 8);
+        String suffix = TestSuffix.next();
         Member member = memberRepository.save(Member.create("me" + suffix, passwordEncoder.encode(PASSWORD),
                 "nick" + suffix.substring(2), "me" + suffix + "@example.com", "010-1111-2222"));
         pointBalanceRepository.save(PointBalance.createEmpty(member));

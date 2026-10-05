@@ -3,10 +3,14 @@ package negocut.common.exception;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +73,33 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex){
 
         ErrorCode errorCode = ErrorCode.METHOD_NOT_ALLOWED;
+
+        return ResponseEntity
+            .status(errorCode.getHttpStatus())
+            .body(ApiResponse.error(ErrorResult.of(errorCode.name(), errorCode.getMessage())));
+    }
+
+    // 본문이 JSON이 아니거나, 없는 enum 값이거나, 필수 파라미터가 없거나 타입이 맞지 않는 요청은 클라이언트의 잘못이므로 400이다.
+    // (이 핸들러가 없으면 아래의 "그 밖의 모든 예외"로 떨어져 500이 된다.)
+    @ExceptionHandler({
+        HttpMessageNotReadableException.class,
+        MissingServletRequestParameterException.class,
+        MethodArgumentTypeMismatchException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex){
+
+        ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
+        log.warn("[BadRequest] {}", ex.getClass().getSimpleName());
+
+        return ResponseEntity
+            .status(errorCode.getHttpStatus())
+            .body(ApiResponse.error(ErrorResult.of(errorCode.name(), errorCode.getMessage())));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex){
+
+        ErrorCode errorCode = ErrorCode.UNSUPPORTED_MEDIA_TYPE;
 
         return ResponseEntity
             .status(errorCode.getHttpStatus())

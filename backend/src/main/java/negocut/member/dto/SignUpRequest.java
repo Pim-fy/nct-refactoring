@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import negocut.common.util.Emails;
 
 // 형식 규칙은 기능 명세서 3-1 회원가입. 형식 오류 메시지는 API 명세서 0-3의 예시 문구를 따른다.
 public record SignUpRequest(
@@ -43,8 +44,19 @@ public record SignUpRequest(
         @Valid
         List<AgreementConsent> agreements) {
 
+    // 이메일은 대소문자를 구분하지 않으므로 받는 즉시 공백을 없애고 소문자로 통일한다.
+    public SignUpRequest {
+        email = Emails.normalize(email);
+    }
+
+
+    // isAgreed를 생략하면 동의하지 않은 것으로 본다. 필수 약관이면 가입이 거부되고, 선택 약관이면 미동의로 기록된다.
     public record AgreementConsent(
             @NotNull(message = "약관 식별자가 필요합니다.") Long agreementId,
-            boolean isAgreed) {
+            Boolean isAgreed) {
+
+        public boolean agreed() {
+            return Boolean.TRUE.equals(isAgreed);
+        }
     }
 }

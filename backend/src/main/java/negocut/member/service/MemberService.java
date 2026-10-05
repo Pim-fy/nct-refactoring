@@ -11,6 +11,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 
+import org.springframework.core.NestedExceptionUtils;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ import negocut.common.exception.BusinessException;
 import negocut.common.exception.ErrorCode;
 import negocut.common.exception.InputInvalidException;
 import negocut.common.response.ErrorResult;
+import negocut.common.util.Emails;
 import negocut.member.dto.AvailabilityResponse;
 import negocut.member.dto.MemberPatterns;
 import negocut.member.dto.MyInfoResponse;
@@ -61,7 +64,7 @@ public class MemberService {
 
         emailVerificationService.consumeToken(request.verificationToken(), request.email(), VerificationPurpose.SIGN_UP);
 
-        Member member = memberRepository.save(Member.create(
+        Member member = saveMember(Member.create(
                 request.loginId(),
                 passwordEncoder.encode(request.password()),
                 request.nickname(),
@@ -70,7 +73,7 @@ public class MemberService {
 
         LocalDateTime agreedAt = LocalDateTime.now();
         Map<Long, Boolean> agreedById = consents.stream()
-                .collect(Collectors.toMap(consent -> consent.agreementId(), consent -> consent.isAgreed()));
+                .collect(Collectors.toMap(consent -> consent.agreementId(), consent -> consent.agreed()));
         memberAgreementRepository.saveAll(effectiveAgreements.stream()
                 .map(agreement -> MemberAgreement.create(member, agreement, agreedById.get(agreement.getId()), agreedAt))
                 .toList());
@@ -108,11 +111,41 @@ public class MemberService {
         return new AvailabilityResponse(!memberRepository.existsByNickname(nickname));
     }
 
-    public AvailabilityResponse checkEmail(String email) {
+    public AvailabilityResponse checkEmail(String rawEmail) {
+        String email = Emails.normalize(rawEmail);
         if (email == null || email.isBlank() || email.length() > 100 || !email.contains("@")) {
             throw fieldError("email", "이메일 형식이 올바르지 않습니다.");
         }
         return new AvailabilityResponse(!memberRepository.existsByEmail(email));
+    }
+
+    // 위의 중복 검사와 저장 사이에 같은 값으로 다른 요청이 먼저 저장되면 DB의 유니크 제약이 막는다.
+    // 그 오류를 500이 아니라 어느 값이 중복인지 알려 주는 오류로 바꾼다. 이 예외로 트랜잭션은 취소되므로 계정도, 토큰 사용도 남지 않는다.
+    private Member saveMember(Member member) {
+        try {
+            return memberRepository.saveAndFlush(member);   // 제약 위반을 여기서 바로 드러내려고 즉시 반영한다.
+        } catch (DataIntegrityViolationException e) {
+            ErrorCode duplicated = duplicateErrorCodeOf(e);
+            if (duplicated == null) {
+                throw e;
+            }
+            throw new BusinessException(duplicated);
+        }
+    }
+
+    // 깨진 제약 이름으로 어느 값이 중복인지 판단한다. 알 수 없는 제약이면 null이다.
+    static ErrorCode duplicateErrorCodeOf(DataIntegrityViolationException e) {
+        String message = String.valueOf(NestedExceptionUtils.getMostSpecificCause(e).getMessage()).toLowerCase();
+        if (message.contains("uk_member_login_id")) {
+            return ErrorCode.MEMBER_ID_DUPLICATED;
+        }
+        if (message.contains("uk_member_nickname")) {
+            return ErrorCode.MEMBER_NICKNAME_DUPLICATED;
+        }
+        if (message.contains("uk_member_email")) {
+            return ErrorCode.MEMBER_EMAIL_DUPLICATED;
+        }
+        return null;
     }
 
     // BCrypt는 72바이트까지만 다룬다. 형식 검사는 글자 수만 보므로, 한글처럼 한 글자가 여러 바이트인 비밀번호는 여기서 거른다.
@@ -151,7 +184,7 @@ public class MemberService {
             throw fieldError("agreements", "시행 중인 모든 약관에 대한 동의 여부를 보내야 합니다.");
         }
         for (SignUpRequest.AgreementConsent consent : consents) {
-            if (effectiveById.get(consent.agreementId()).isRequired() && !consent.isAgreed()) {
+            if (effectiveById.get(consent.agreementId()).isRequired() && !consent.agreed()) {
                 throw fieldError("agreements", "필수 약관에 모두 동의해야 합니다.");
             }
         }

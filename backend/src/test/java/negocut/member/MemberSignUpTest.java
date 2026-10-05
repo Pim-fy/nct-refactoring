@@ -9,8 +9,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
@@ -38,6 +43,7 @@ import negocut.member.repository.MemberAgreementRepository;
 import negocut.member.repository.MemberRepository;
 import negocut.point.entity.PointBalance;
 import negocut.point.repository.PointBalanceRepository;
+import negocut.support.TestSuffix;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -60,8 +66,7 @@ class MemberSignUpTest {
 
     // 실행마다 값이 겹치지 않도록 하는 접미사 (DB를 비우지 않고 여러 테스트가 같은 테이블을 쓴다)
     private String suffix() {
-        String n = String.valueOf(System.nanoTime());
-        return n.substring(n.length() - 8);
+        return TestSuffix.next();
     }
 
     private record Account(String loginId, String nickname, String email) {
@@ -254,6 +259,141 @@ class MemberSignUpTest {
                 .andExpect(jsonPath("$.error.code").value("MEMBER_INPUT_INVALID"))
                 .andExpect(jsonPath("$.error.details[0].field").value("password"));
         assertThat(memberRepository.existsByLoginId(a.loginId())).isFalse();
+    }
+
+    // 필수 약관은 동의로 보내고, 선택 약관은 isAgreed 항목 자체를 뺀다.
+    private String agreementsJsonWithoutOptionalFlag() {
+        return agreementRepository.findAll().stream()
+                .map(a -> a.isRequired()
+                        ? "{\"agreementId\":" + a.getId() + ",\"isAgreed\":true}"
+                        : "{\"agreementId\":" + a.getId() + "}")
+                .collect(Collectors.joining(",", "[", "]"));
+    }
+
+    @Test
+    void 선택_약관의_isAgreed를_생략하면_미동의로_기록되고_가입된다() throws Exception {
+        Account a = Account.unique(suffix());
+        String token = issueToken(a.email());
+
+        MvcResult result = signUp(signUpBody(a, "abcd1234", token, agreementsJsonWithoutOptionalFlag()))
+                .andExpect(status().isOk()).andReturn();
+        Long memberId = objectMapper.readTree(result.getResponse().getContentAsString()).get("data").get("memberId").asLong();
+
+        Map<Long, Boolean> requiredById = agreementRepository.findAll().stream()
+                .collect(Collectors.toMap(agreement -> agreement.getId(), agreement -> agreement.isRequired()));
+        List<MemberAgreement> saved = memberAgreementRepository.findByMemberId(memberId);
+        assertThat(saved).hasSize(requiredById.size());
+        assertThat(saved).filteredOn(ma -> !requiredById.get(ma.getAgreement().getId()))
+                .isNotEmpty()
+                .allSatisfy(ma -> assertThat(ma.isAgreed()).isFalse());
+    }
+
+    @Test
+    void 필수_약관의_isAgreed를_생략하면_500이_아니라_400이다() throws Exception {
+        Account a = Account.unique(suffix());
+        String token = issueToken(a.email());
+        String allWithoutFlag = agreementRepository.findAll().stream()
+                .map(x -> "{\"agreementId\":" + x.getId() + "}")
+                .collect(Collectors.joining(",", "[", "]"));
+
+        signUp(signUpBody(a, "abcd1234", token, allWithoutFlag))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("MEMBER_INPUT_INVALID"))
+                .andExpect(jsonPath("$.error.details[0].field").value("agreements"));
+        assertThat(memberRepository.existsByLoginId(a.loginId())).isFalse();
+    }
+
+    // 각 본문을 별도 스레드에서 동시에 보낸다.
+    private List<MvcResult> signUpConcurrently(String... bodies) throws Exception {
+        ExecutorService pool = Executors.newFixedThreadPool(bodies.length);
+        CountDownLatch go = new CountDownLatch(1);
+        List<Future<MvcResult>> futures = new ArrayList<>();
+        for (String body : bodies) {
+            futures.add(pool.submit(() -> {
+                go.await();
+                return signUp(body).andReturn();
+            }));
+        }
+        go.countDown();
+        List<MvcResult> results = new ArrayList<>();
+        for (Future<MvcResult> future : futures) {
+            results.add(future.get());
+        }
+        pool.shutdown();
+        return results;
+    }
+
+    private List<Integer> statusesOf(List<MvcResult> results) {
+        return results.stream().map(r -> r.getResponse().getStatus()).sorted().toList();
+    }
+
+    @Test
+    void 같은_아이디로_동시에_가입하면_한_명만_가입되고_나머지는_중복_오류다() throws Exception {
+        Account a = Account.unique(suffix());
+        Account b = Account.unique(suffix());
+        Account sameLoginId = new Account(a.loginId(), b.nickname(), b.email());   // 아이디만 같고 닉네임·이메일은 다르다.
+        String tokenA = issueToken(a.email());
+        String tokenB = issueToken(b.email());
+
+        List<MvcResult> results = signUpConcurrently(
+                signUpBody(a, "abcd1234", tokenA, agreementsJson(true)),
+                signUpBody(sameLoginId, "abcd1234", tokenB, agreementsJson(true)));
+
+        // 어느 쪽이 먼저든 한 명만 가입되고, 진 쪽은 500이 아니라 아이디 중복(400)이다.
+        assertThat(statusesOf(results)).containsExactly(200, 400);
+        MvcResult failed = results.stream().filter(r -> r.getResponse().getStatus() == 400).findFirst().orElseThrow();
+        assertThat(failed.getResponse().getContentAsString()).contains("MEMBER_ID_DUPLICATED");
+        assertThat(memberRepository.findByLoginId(a.loginId())).isPresent();
+    }
+
+    @Test
+    void 같은_검증_토큰으로_동시에_가입하면_한_명만_가입된다() throws Exception {
+        Account a = Account.unique(suffix());
+        Account b = Account.unique(suffix());
+        Account sameEmail = new Account(b.loginId(), b.nickname(), a.email());   // 이메일만 같고 아이디·닉네임은 다르다.
+        String token = issueToken(a.email());
+
+        List<MvcResult> results = signUpConcurrently(
+                signUpBody(a, "abcd1234", token, agreementsJson(true)),
+                signUpBody(sameEmail, "abcd1234", token, agreementsJson(true)));
+
+        assertThat(statusesOf(results)).containsExactly(200, 400);
+        MvcResult failed = results.stream().filter(r -> r.getResponse().getStatus() == 400).findFirst().orElseThrow();
+        assertThat(failed.getResponse().getContentAsString())
+                .containsAnyOf("VERIFICATION_TOKEN_INVALID", "MEMBER_EMAIL_DUPLICATED");
+        assertThat(memberRepository.existsByEmail(a.email())).isTrue();
+    }
+
+    @Test
+    void 이메일은_대소문자를_구분하지_않고_소문자로_저장된다() throws Exception {
+        Account a = Account.unique(suffix());
+        String upperEmail = a.email().toUpperCase();
+
+        // 대문자 이메일로 인증번호를 받고, 같은 대문자 이메일로 검증한다. 메일은 소문자 주소로 나간다.
+        mockMvc.perform(post("/api/auth/email-codes").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + upperEmail + "\",\"purpose\":\"SIGN_UP\"}")).andExpect(status().isOk());
+        ArgumentCaptor<String> code = ArgumentCaptor.forClass(String.class);
+        verify(mailSender, atLeastOnce()).send(eq(a.email()), code.capture());
+        MvcResult verified = mockMvc.perform(post("/api/auth/email-codes/verify").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + upperEmail + "\",\"purpose\":\"SIGN_UP\",\"code\":\"" + code.getValue() + "\"}"))
+                .andExpect(status().isOk()).andReturn();
+        String token = objectMapper.readTree(verified.getResponse().getContentAsString()).get("data").get("verificationToken").asString();
+
+        // 가입은 소문자(또는 섞인) 이메일로 해도 같은 인증으로 인정된다.
+        Account mixed = new Account(a.loginId(), a.nickname(), "  " + a.email().toUpperCase() + " ");
+        signUp(signUpBody(mixed, "abcd1234", token, agreementsJson(true))).andExpect(status().isOk());
+
+        assertThat(memberRepository.findByLoginId(a.loginId()).orElseThrow().getEmail()).isEqualTo(a.email());
+    }
+
+    @Test
+    void 이메일_중복_확인도_대소문자를_구분하지_않는다() throws Exception {
+        Account a = Account.unique(suffix());
+        signUp(signUpBody(a, "abcd1234", issueToken(a.email()), agreementsJson(true))).andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/members/check-email").param("email", a.email().toUpperCase()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isAvailable").value(false));
     }
 
     @Test

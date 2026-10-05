@@ -17,9 +17,14 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
 
     private final byte[] body;
 
-    public CachedBodyHttpServletRequest(HttpServletRequest request) throws IOException {
+    // maxBytes까지만 읽는다. 선언된 길이가 없는 청크 전송도 실제로 읽은 크기로 막아, 큰 본문이 메모리에 쌓이지 않게 한다.
+    public CachedBodyHttpServletRequest(HttpServletRequest request, int maxBytes) throws IOException {
         super(request);
-        this.body = request.getInputStream().readAllBytes();
+        byte[] read = request.getInputStream().readNBytes(maxBytes + 1);
+        if (read.length > maxBytes) {
+            throw new RequestBodyTooLargeException(maxBytes);
+        }
+        this.body = read;
     }
 
     public byte[] getCachedBody() {

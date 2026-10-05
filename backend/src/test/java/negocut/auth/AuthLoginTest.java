@@ -34,6 +34,7 @@ import negocut.member.entity.Member;
 import negocut.member.entity.MemberRole;
 import negocut.member.entity.MemberStatus;
 import negocut.member.repository.MemberRepository;
+import negocut.support.TestSuffix;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -48,8 +49,7 @@ class AuthLoginTest {
     @Value("${app.jwt.secret}") private String jwtSecret;
 
     private Member createMember(MemberStatus status, MemberRole role) {
-        String n = String.valueOf(System.nanoTime());
-        String suffix = n.substring(n.length() - 8);
+        String suffix = TestSuffix.next();
         Member member = Member.create("lg" + suffix, passwordEncoder.encode(PASSWORD), "nick" + suffix.substring(2),
                 "l" + suffix + "@example.com", "010-0000-0000");
         ReflectionTestUtils.setField(member, "memberStatus", status);
@@ -129,7 +129,7 @@ class AuthLoginTest {
         Member member = createMember();
 
         MvcResult wrongPassword = login(member.getLoginId(), "wrongpass1", false);
-        MvcResult unknownId = login("nobody" + System.nanoTime(), PASSWORD, false);
+        MvcResult unknownId = login("nobody" + TestSuffix.next(), PASSWORD, false);
 
         assertThat(wrongPassword.getResponse().getStatus()).isEqualTo(401);
         assertThat(unknownId.getResponse().getStatus()).isEqualTo(401);

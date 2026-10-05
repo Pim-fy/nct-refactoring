@@ -84,13 +84,10 @@ public class EmailVerificationService {
     public void consumeToken(String token, String email, VerificationPurpose purpose) {
         Long verificationId = tokenProvider.parse(token, email, purpose);
 
-        EmailVerification verification = verificationRepository.findById(verificationId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.VERIFICATION_TOKEN_INVALID));
-
-        if (verification.isUsed()) {
+        // 사용 여부 확인과 사용 표시를 한 번의 조건부 갱신으로 처리한다. 없는 이력이거나 이미 쓴 이력이면 갱신된 행이 0이다.
+        if (verificationRepository.markUsedIfUnused(verificationId) == 0) {
             throw new BusinessException(ErrorCode.VERIFICATION_TOKEN_INVALID);
         }
-        verification.markUsed();
     }
 
     // 용도별로 계정 일치를 확인한다. 회원가입은 확인할 계정이 없어 항상 통과한다.

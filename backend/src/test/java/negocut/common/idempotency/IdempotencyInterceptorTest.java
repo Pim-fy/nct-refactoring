@@ -29,6 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import negocut.auth.mail.VerificationMailSender;
+import negocut.support.TestSuffix;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -144,7 +145,7 @@ class IdempotencyInterceptorTest {
 
     @Test
     void 로그인하지_않은_요청은_접속_IP로_구분한다() throws Exception {
-        String body = "{\"email\":\"dup" + System.nanoTime() + "@example.com\",\"purpose\":\"SIGN_UP\"}";
+        String body = "{\"email\":\"dup" + TestSuffix.next() + "@example.com\",\"purpose\":\"SIGN_UP\"}";
 
         mockMvc.perform(post("/api/auth/email-codes").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk());

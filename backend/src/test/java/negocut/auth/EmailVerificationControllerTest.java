@@ -28,6 +28,7 @@ import negocut.auth.repository.EmailVerificationRepository;
 import negocut.auth.token.VerificationTokenProvider;
 import negocut.common.exception.BusinessException;
 import negocut.common.exception.ErrorCode;
+import negocut.support.TestSuffix;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -54,7 +55,7 @@ class EmailVerificationControllerTest {
     private VerificationMailSender mailSender;
 
     private String uniqueEmail() {
-        return "t" + System.nanoTime() + "@example.com";
+        return "t" + TestSuffix.next() + "@example.com";
     }
 
     private String sendBody(String email) {

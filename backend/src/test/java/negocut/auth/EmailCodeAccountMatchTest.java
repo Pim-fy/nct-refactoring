@@ -24,6 +24,7 @@ import negocut.auth.repository.EmailVerificationRepository;
 import negocut.member.entity.Member;
 import negocut.member.entity.MemberStatus;
 import negocut.member.repository.MemberRepository;
+import negocut.support.TestSuffix;
 
 // 아이디 찾기·비밀번호 재설정의 인증번호 발송 계정 일치 확인 (API-4)
 @SpringBootTest
@@ -41,8 +42,7 @@ class EmailCodeAccountMatchTest {
 
     // 실행마다 값이 겹치지 않는 계정을 만든다.
     private Member createMember() {
-        String n = String.valueOf(System.nanoTime());
-        String suffix = n.substring(n.length() - 8);
+        String suffix = TestSuffix.next();
         return memberRepository.save(Member.create(
                 "acc" + suffix, "encoded-password", "nick" + suffix.substring(2), "m" + suffix + "@example.com", "010-0000-0000"));
     }
@@ -89,7 +89,7 @@ class EmailCodeAccountMatchTest {
 
     @Test
     void 가입하지_않은_이메일도_메일을_보내지_않고_같은_성공_응답을_준다() throws Exception {
-        send(body("nobody" + System.nanoTime() + "@example.com", "FIND_ID", "누구", null))
+        send(body("nobody" + TestSuffix.next() + "@example.com", "FIND_ID", "누구", null))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.expiresAt").exists());
 
@@ -161,7 +161,7 @@ class EmailCodeAccountMatchTest {
 
     @Test
     void 회원가입_용도는_계정_확인_없이_메일을_보낸다() throws Exception {
-        String email = "signup" + System.nanoTime() + "@example.com";
+        String email = "signup" + TestSuffix.next() + "@example.com";
 
         send(body(email, "SIGN_UP", null, null)).andExpect(status().isOk());
 

@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,25 +22,32 @@ import org.hibernate.type.SqlTypes;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)  // 파라미터가 없는 기본 생성자를 만들고, 접근 범위를 protected로 제한.
 @Entity
-@Table(name = "member", indexes = {
-        @Index(name = "ix_member_status_withdrawn", columnList = "member_status, withdrawn_at")
-})
+@Table(name = "member",
+        // 제약에 이름을 붙여 두면 저장 시 중복 오류가 났을 때 어느 제약이 깨졌는지 이름으로 알 수 있다. (MemberService)
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_member_login_id", columnNames = "login_id"),
+                @UniqueConstraint(name = "uk_member_nickname", columnNames = "nickname"),
+                @UniqueConstraint(name = "uk_member_email", columnNames = "email")
+        },
+        indexes = {
+                @Index(name = "ix_member_status_withdrawn", columnList = "member_status, withdrawn_at")
+        })
 public class Member extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)     // AUTO_INCREMENT 사용
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(nullable = false, length = 20)
     private String loginId;
 
     @Column(nullable = false, length = 60)
     private String password;
 
-    @Column(nullable = false, unique = true, length = 10)
+    @Column(nullable = false, length = 10)
     private String nickname;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, length = 100)
     private String email;
 
     @Column(nullable = false, length = 20)
