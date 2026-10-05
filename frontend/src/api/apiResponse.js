@@ -22,6 +22,11 @@ export function getErrorCode(error) {
   return error?.response?.data?.error?.code;
 }
 
+// 로그인 정지·탈퇴 회원의 요청이라 서버가 거부한 응답인지. 이 응답은 서버가 인증 쿠키도 함께 지우므로 화면의 로그인 상태도 지워야 한다.
+export function isMemberStatusBlocked(error) {
+  return error?.response?.status === 403 && getErrorCode(error) === 'MEMBER_STATUS_NOT_ALLOWED';
+}
+
 // 입력값 오류의 필드별 사유 [{ field, message }]. 없으면 빈 배열.
 export function getFieldErrors(error) {
   return error?.response?.data?.error?.details ?? [];

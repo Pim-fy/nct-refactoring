@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { setAuthFailureHandler } from '../api/axios';
+import { isMemberStatusBlocked } from '../api/apiResponse';
 import * as authApi from '../api/authApi';
 import { fetchMe } from '../api/memberApi';
 import { AuthContext } from './authContext';
@@ -46,12 +47,12 @@ export default function AuthProvider({ children }) {
 
   // 서버에서 리프레시 토큰을 폐기하고 쿠키를 지운 뒤에야 화면의 로그인 상태를 지운다.
   // 서버 쪽 로그아웃이 실패했는데 화면만 로그아웃되면 새로고침 때 다시 로그인되므로, 실패는 호출한 쪽에 알린다.
-  // 단, 401이면 재발급까지 실패해 서버 세션이 이미 없는 것이므로 로그아웃된 것으로 본다.
+  // 단, 401이면 재발급까지 실패해 서버 세션이 이미 없는 것이고, 정지·탈퇴 회원이면 서버가 쿠키를 지운 것이므로 로그아웃된 것으로 본다.
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } catch (error) {
-      if (error?.response?.status !== 401) {
+      if (error?.response?.status !== 401 && !isMemberStatusBlocked(error)) {
         throw error;
       }
     }
