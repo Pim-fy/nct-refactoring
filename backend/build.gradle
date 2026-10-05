@@ -22,6 +22,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'com.mysql:mysql-connector-j'
@@ -37,4 +41,8 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// 테스트에서만 쓰는 임의의 서명 키. 실제 키는 각자 application.properties에 두고, 이 값은 시스템 속성이라 그 값보다 우선한다.
+	systemProperty 'app.jwt.secret', 'test-only-jwt-signing-key-for-unit-tests-0123456789abcdef'
+	// 메일은 실제로 보내지 않고 콘솔 발송기를 쓴다. 이 값을 지정하지 않으면 앱이 시작되지 않는다. (MailSenderSettingGuard)
+	systemProperty 'app.mail.enabled', 'false'
 }

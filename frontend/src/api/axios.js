@@ -12,37 +12,63 @@ const api = axios.create({
   withCredentials: true,  // 브라우저가 쿠키를 요청에 자동으로 실어 보내게 함
 });
 
-// 인터셉터: 요청을 보내기 전, 응답을 받은 후에 가로채서 공통 처리를 끼워 넣음. 원래 흐름 중간에 끼어드는 것.
-// 여기서는 액세스 토큰 만료(401)를 감지해 재발급을 한 번 시도한 뒤 원래 요청을 재시도한다.
+// 401을 받아도 재발급을 시도하지 않는 요청.
+// 로그인 실패(401)는 토큰 만료가 아니라 자격 불일치이고, 재발급 요청 자체는 다시 재발급할 수 없다.
+// 로그아웃은 여기에 넣지 않는다. 액세스 토큰이 만료된 상태에서 로그아웃해도 재발급 뒤에 다시 보내야 서버가 리프레시 토큰을 폐기한다.
+const NO_REFRESH_URLS = ['/auth/login', '/auth/refresh'];
+
+// 재발급까지 실패했을 때 로그인 상태를 정리하도록 AuthProvider가 등록하는 함수.
+// 인터셉터가 화면을 직접 이동시키지 않는다. 이동은 라우터(회원 전용 경로 보호)가 맡는다.
+let authFailureHandler = null;
+
+export function setAuthFailureHandler(handler) {
+  authFailureHandler = handler;
+}
+
+// 여러 요청이 동시에 401을 받아도 재발급은 한 번만 보내고 그 결과를 함께 기다린다.
+let refreshPromise = null;
+
+function refreshAccessToken() {
+  if (!refreshPromise) {
+    // `api`가 아닌 `axios`로 직접 호출한다. `api`로 보내면 이 응답 인터셉터를 다시 거쳐 무한 루프에 빠질 수 있다.
+    refreshPromise = axios
+      .post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
+// 인터셉터: 응답을 받은 뒤 가로채서 공통 처리를 끼워 넣음.
+// 액세스 토큰 만료(401)를 감지해 재발급을 한 번 시도한 뒤 원래 요청을 재시도한다.
 api.interceptors.response.use(
-  (response) => response, // 성공 시 콜백. 응답이 정상(2xx)이면 그대로 통과시킴.
-  async (error) => {  // 실패 시 콜백.
-    // error.config: 실패했던 요청 자체의 설정. 재발급에 성공하면 이 설정 그대로 요청을 다시 보내야 함.
+  (response) => response,
+  async (error) => {
     const originalRequest = error.config;
+    const isUnauthorized = error.response?.status === 401;
+    const canRefresh =
+      isUnauthorized &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !NO_REFRESH_URLS.includes(originalRequest.url);
 
-    // refresh 요청 자체가 실패한 경우는 재시도하지 않고 바로 로그인 화면으로 보낸다.
-    // 무한 루프 1차 안전장치. 요청 자체가 "토큰 재발급 요청"이었다면, 더 재발급을 시도할 방법이 없으므로 로그인 페이지로 이동.
-    if (originalRequest.url === '/auth/refresh') {
-      window.location.href = '/login';
-      return Promise.reject(error); // 에러 처리 후에도 호출한 쪽이 실패를 알 수 있도록 거절(reject) 유지
+    if (!canRefresh) {
+      return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;  // 이후 재시도 시 알 수 있도록 _retry 속성을 붙임.
+    originalRequest._retry = true;  // 한 요청을 두 번 이상 재시도하지 않도록 표시
 
-      try {
-        // `api`가 아닌 `axios`로 직접 호출한다.
-        // `api`로 보내면 이 응답 인터셉터를 다시 거치게 되어 무한 루프에 빠질 수 있다.
-        await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });  // 재발급 요청을 보내고, 서버 응답이 올 때까지 멈춰서 기다린다.
-        return api(originalRequest);  // 재발급에 성공. 원래 실패했던 요청을 다시 보냄.
-      } catch (refreshError) {  // 재발급 실패. 로그인 페이지로 보내고, 거절(reject)
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
+    try {
+      await refreshAccessToken();
+      return api(originalRequest);  // 재발급에 성공. 원래 실패했던 요청을 다시 보냄.
+    } catch (refreshError) {
+      // 재발급이 401로 거부됐을 때만 로그인 상태를 지운다. 네트워크 오류나 서버 오류는 일시적일 수 있어 로그아웃시키지 않는다.
+      if (refreshError.response?.status === 401 && authFailureHandler) {
+        authFailureHandler();
       }
+      return Promise.reject(error);  // 호출한 쪽에는 원래 요청의 오류를 그대로 알린다.
     }
-
-    // 401이 아니거나 이미 재시도한 요청이면 원래 에러를 그대로 거절(reject)
-    return Promise.reject(error);
   }
 );
 
