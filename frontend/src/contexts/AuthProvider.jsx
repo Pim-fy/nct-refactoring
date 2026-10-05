@@ -35,15 +35,27 @@ export default function AuthProvider({ children }) {
 
   const login = useCallback(async (credentials) => {
     await authApi.login(credentials);
-    setUser(await fetchMe());   // 로그인 응답에는 요약만 있어 전체 정보를 다시 받는다.
+    try {
+      setUser(await fetchMe());   // 로그인 응답에는 요약만 있어 전체 정보를 다시 받는다.
+    } catch (error) {
+      // 서버에는 로그인(쿠키·리프레시 토큰)이 되었는데 화면은 비로그인인 상태로 남지 않게 서버 세션을 정리한다.
+      await authApi.logout().catch(() => {});
+      throw error;
+    }
   }, []);
 
+  // 서버에서 리프레시 토큰을 폐기하고 쿠키를 지운 뒤에야 화면의 로그인 상태를 지운다.
+  // 서버 쪽 로그아웃이 실패했는데 화면만 로그아웃되면 새로고침 때 다시 로그인되므로, 실패는 호출한 쪽에 알린다.
+  // 단, 401이면 재발급까지 실패해 서버 세션이 이미 없는 것이므로 로그아웃된 것으로 본다.
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
-    } finally {
-      setUser(null);   // 서버 응답과 관계없이 화면의 로그인 상태는 지운다.
+    } catch (error) {
+      if (error?.response?.status !== 401) {
+        throw error;
+      }
     }
+    setUser(null);
   }, []);
 
   const value = useMemo(() => ({ user, loading, login, logout }), [user, loading, login, logout]);

@@ -13,8 +13,9 @@ const api = axios.create({
 });
 
 // 401을 받아도 재발급을 시도하지 않는 요청.
-// 로그인 실패(401)는 토큰 만료가 아니라 자격 불일치이고, 재발급·로그아웃은 재발급으로 해결되지 않는다.
-const NO_REFRESH_URLS = ['/auth/login', '/auth/refresh', '/auth/logout'];
+// 로그인 실패(401)는 토큰 만료가 아니라 자격 불일치이고, 재발급 요청 자체는 다시 재발급할 수 없다.
+// 로그아웃은 여기에 넣지 않는다. 액세스 토큰이 만료된 상태에서 로그아웃해도 재발급 뒤에 다시 보내야 서버가 리프레시 토큰을 폐기한다.
+const NO_REFRESH_URLS = ['/auth/login', '/auth/refresh'];
 
 // 재발급까지 실패했을 때 로그인 상태를 정리하도록 AuthProvider가 등록하는 함수.
 // 인터셉터가 화면을 직접 이동시키지 않는다. 이동은 라우터(회원 전용 경로 보호)가 맡는다.
@@ -61,11 +62,12 @@ api.interceptors.response.use(
     try {
       await refreshAccessToken();
       return api(originalRequest);  // 재발급에 성공. 원래 실패했던 요청을 다시 보냄.
-    } catch {
-      if (authFailureHandler) {
+    } catch (refreshError) {
+      // 재발급이 401로 거부됐을 때만 로그인 상태를 지운다. 네트워크 오류나 서버 오류는 일시적일 수 있어 로그아웃시키지 않는다.
+      if (refreshError.response?.status === 401 && authFailureHandler) {
         authFailureHandler();
       }
-      return Promise.reject(error);  // 호출한 쪽에는 원래 요청의 401을 그대로 알린다.
+      return Promise.reject(error);  // 호출한 쪽에는 원래 요청의 오류를 그대로 알린다.
     }
   }
 );
