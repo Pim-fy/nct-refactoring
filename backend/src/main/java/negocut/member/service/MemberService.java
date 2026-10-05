@@ -33,6 +33,7 @@ import negocut.member.dto.SignUpResponse;
 import negocut.member.entity.Agreement;
 import negocut.member.entity.Member;
 import negocut.member.entity.MemberAgreement;
+import negocut.member.entity.MemberRole;
 import negocut.member.entity.MemberStatus;
 import negocut.member.repository.AgreementRepository;
 import negocut.member.repository.MemberAgreementRepository;
@@ -95,7 +96,12 @@ public class MemberService {
             throw new BusinessException(ErrorCode.MEMBER_STATUS_NOT_ALLOWED);
         }
 
-        // 가입할 때 포인트 잔액을 함께 만들므로 항상 있어야 한다.
+        // 관리자 계정은 데이터베이스에서 직접 만들고 포인트를 쓰지 않으므로 포인트 잔액이 없다. 포인트를 빼고 응답한다.
+        if (member.getMemberRole() == MemberRole.ADMIN) {
+            return MyInfoResponse.of(member, null);
+        }
+
+        // 회원은 가입할 때 포인트 잔액을 함께 만들므로 항상 있어야 한다.
         PointBalance balance = pointBalanceRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new IllegalStateException("포인트 잔액이 없는 회원입니다. memberId=" + memberId));
         return MyInfoResponse.of(member, balance);
