@@ -596,6 +596,7 @@ class AuctionRegisterTest {
         mockMvc.perform(get("/api/members/me/auctions?size=101").cookie(seller)).andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/members/me/auctions?page=-1").cookie(seller)).andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/members/me/auctions?page=abc").cookie(seller)).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/members/me/auctions?page=2147483647&size=100").cookie(seller)).andExpect(status().isBadRequest());
     }
 
     @Test

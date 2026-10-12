@@ -3,6 +3,7 @@ import AdminLayout from './components/AdminLayout';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
+import AuctionDetailPage from './pages/AuctionDetailPage';
 import AuctionRegisterPage from './pages/AuctionRegisterPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -17,6 +18,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/auctions/:id" element={<AuctionDetailPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route element={<ProtectedRoute role="MEMBER" />}>

@@ -4,18 +4,9 @@ import { getErrorMessage } from '../api/apiResponse';
 import { fetchMyAuctions } from '../api/auctionApi';
 import { resolveImageUrl } from '../api/imageApi';
 import { useToast } from '../hooks/useToast';
-import { AUCTION_STATUS_LABELS, formatDateTime, formatRemaining, formatWon } from '../utils/format';
+import { AUCTION_STATUS_BADGES, AUCTION_STATUS_LABELS, formatDateTime, formatRemaining, formatWon } from '../utils/format';
 
 const PAGE_SIZE = 10;
-
-// 상태별 배지 모양. Tailwind는 소스에 글자 그대로 있는 클래스만 만들므로 전체 이름을 적어 둔다.
-const STATUS_BADGE = {
-  REGISTERED: 'badge-ghost',
-  IN_PROGRESS: 'badge-primary',
-  SOLD: 'badge-success',
-  FAILED: 'badge-neutral',
-  STOPPED: 'badge-error',
-};
 
 // 내 경매 목록 (기능 명세서 3-4, 화면 설계서 내 경매 목록). 최신 등록순이다.
 export default function MyAuctionsPage() {
@@ -73,28 +64,30 @@ export default function MyAuctionsPage() {
             {data.content.map((auction) => {
               const thumbnail = resolveImageUrl(auction.thumbnailUrl);
               return (
-                <li key={auction.auctionId} className="flex gap-4 py-4">
-                  {thumbnail ? (
-                    <img src={thumbnail} alt="" className="h-20 w-20 shrink-0 rounded object-cover" />
-                  ) : (
-                    <div className="h-20 w-20 shrink-0 rounded bg-base-200" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className={`badge badge-sm ${STATUS_BADGE[auction.auctionStatus] ?? 'badge-ghost'}`}>
-                        {AUCTION_STATUS_LABELS[auction.auctionStatus] ?? auction.auctionStatus}
-                      </span>
-                      <span className="text-xs text-base-content/60">{auction.categoryName}</span>
+                <li key={auction.auctionId}>
+                  <Link to={`/auctions/${auction.auctionId}`} className="flex gap-4 py-4 hover:bg-base-200">
+                    {thumbnail ? (
+                      <img src={thumbnail} alt="" className="h-20 w-20 shrink-0 rounded object-cover" />
+                    ) : (
+                      <div className="h-20 w-20 shrink-0 rounded bg-base-200" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className={`badge badge-sm ${AUCTION_STATUS_BADGES[auction.auctionStatus] ?? 'badge-ghost'}`}>
+                          {AUCTION_STATUS_LABELS[auction.auctionStatus] ?? auction.auctionStatus}
+                        </span>
+                        <span className="text-xs text-base-content/60">{auction.categoryName}</span>
+                      </div>
+                      <p className="truncate font-medium">{auction.productName}</p>
+                      <p className="mt-1 text-sm text-base-content/70">
+                        시작가 {formatWon(auction.startPrice)} · 현재가 {formatWon(auction.currentPrice)} · 입찰 {auction.bidCount}건
+                      </p>
+                      <p className="text-sm text-base-content/70">
+                        종료 {formatDateTime(auction.endAt)}
+                        {auction.auctionStatus === 'IN_PROGRESS' && ` (${formatRemaining(auction.remainingSeconds)} 남음)`}
+                      </p>
                     </div>
-                    <p className="truncate font-medium">{auction.productName}</p>
-                    <p className="mt-1 text-sm text-base-content/70">
-                      시작가 {formatWon(auction.startPrice)} · 현재가 {formatWon(auction.currentPrice)} · 입찰 {auction.bidCount}건
-                    </p>
-                    <p className="text-sm text-base-content/70">
-                      종료 {formatDateTime(auction.endAt)}
-                      {auction.auctionStatus === 'IN_PROGRESS' && ` (${formatRemaining(auction.remainingSeconds)} 남음)`}
-                    </p>
-                  </div>
+                  </Link>
                 </li>
               );
             })}

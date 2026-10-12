@@ -51,3 +51,12 @@ export const AUCTION_STATUS_LABELS = {
   FAILED: '유찰',
   STOPPED: '중단',
 };
+
+// 상태별 배지 모양. Tailwind는 소스에 글자 그대로 있는 클래스만 만들므로 전체 이름을 적어 둔다.
+export const AUCTION_STATUS_BADGES = {
+  REGISTERED: 'badge-ghost',
+  IN_PROGRESS: 'badge-primary',
+  SOLD: 'badge-success',
+  FAILED: 'badge-neutral',
+  STOPPED: 'badge-error',
+};
