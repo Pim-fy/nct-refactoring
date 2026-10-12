@@ -29,6 +29,14 @@ public enum ErrorCode {
     CATEGORY_NAME_DUPLICATED(HttpStatus.CONFLICT, "이미 사용 중인 카테고리 이름입니다."),
     CATEGORY_IN_USE(HttpStatus.CONFLICT, "사용 중인 카테고리는 삭제할 수 없습니다. 사용 여부만 꺼 주세요."),
 
+    // 파일
+    FILE_TYPE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "JPEG, PNG, WebP 이미지만 올릴 수 있습니다."),
+    FILE_TOO_LARGE(HttpStatus.BAD_REQUEST, "이미지는 5MB 이하만 올릴 수 있습니다."),
+    FILE_COUNT_EXCEEDED(HttpStatus.CONFLICT, "올릴 수 있는 이미지 수를 넘었습니다."),
+    FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "이미지를 찾을 수 없습니다."),
+    FILE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "이 이미지에 대한 권한이 없습니다."),
+    FILE_IN_USE(HttpStatus.CONFLICT, "경매에 쓰인 이미지는 삭제할 수 없습니다."),
+
     // 로그인·토큰
     LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다."),
     MEMBER_STATUS_NOT_ALLOWED(HttpStatus.FORBIDDEN, "이용할 수 없는 계정입니다."),
