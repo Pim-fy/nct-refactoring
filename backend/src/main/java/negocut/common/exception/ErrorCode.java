@@ -32,6 +32,7 @@ public enum ErrorCode {
     // 경매
     AUCTION_INPUT_INVALID(HttpStatus.BAD_REQUEST, "입력값을 확인해 주세요."),
     AUCTION_END_TIME_INVALID(HttpStatus.BAD_REQUEST, "종료 시각은 지금부터 10분 뒤 이후, 30일 이내여야 합니다."),
+    AUCTION_NOT_FOUND(HttpStatus.NOT_FOUND, "경매를 찾을 수 없습니다."),
     AUCTION_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "상품 이미지를 한 장 이상 올려 주세요."),
 
     // 파일

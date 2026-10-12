@@ -93,7 +93,8 @@ public class AuctionService {
 
     @Transactional(readOnly = true)
     public PageResult<AuctionSummaryResponse> getMyAuctions(Long memberId, int page, int size) {
-        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
+        // 첫 행의 위치(page * size)가 int 범위를 넘으면 조회할 수 없으므로 범위 밖으로 본다.
+        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE || (long) page * size > Integer.MAX_VALUE) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
         Page<Auction> auctions = auctionRepository.findBySellerId(memberId, PageRequest.of(page, size));

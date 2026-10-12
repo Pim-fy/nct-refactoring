@@ -3,6 +3,7 @@ package negocut.auction.controller;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -10,9 +11,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import negocut.auction.dto.AuctionDetailResponse;
 import negocut.auction.dto.AuctionRegisterRequest;
 import negocut.auction.dto.AuctionRegisterResponse;
 import negocut.auction.dto.AuctionSummaryResponse;
+import negocut.auction.service.AuctionQueryService;
 import negocut.auction.service.AuctionService;
 import negocut.auth.security.AuthMember;
 import negocut.common.exception.ErrorCode;
@@ -27,6 +30,7 @@ import negocut.common.response.PageResult;
 public class AuctionController {
 
     private final AuctionService auctionService;
+    private final AuctionQueryService auctionQueryService;
 
     // BindingResult를 받으면 형식 오류가 경매 전용 코드(AUCTION_INPUT_INVALID)와 필드별 사유(details)로 응답된다.
     @PostMapping("/api/auctions")
@@ -36,6 +40,23 @@ public class AuctionController {
             BindingResult bindingResult) {
         InputInvalidException.throwIfInvalid(bindingResult, ErrorCode.AUCTION_INPUT_INVALID);
         return ApiResponse.success(auctionService.register(member, request));
+    }
+
+    // 공개 경매 목록. 로그인하지 않아도 볼 수 있다.
+    @GetMapping("/api/auctions")
+    public ApiResponse<PageResult<AuctionSummaryResponse>> list(
+            @RequestParam(required = false) Long category,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.success(auctionQueryService.search(category, keyword, sort, page, size));
+    }
+
+    // 공개 경매 상세. 로그인했으면 판매자 여부와 입찰 가능 여부를 함께 판단한다.
+    @GetMapping("/api/auctions/{auctionId}")
+    public ApiResponse<AuctionDetailResponse> detail(@AuthenticationPrincipal AuthMember member, @PathVariable Long auctionId) {
+        return ApiResponse.success(auctionQueryService.getDetail(auctionId, member));
     }
 
     @GetMapping("/api/members/me/auctions")
