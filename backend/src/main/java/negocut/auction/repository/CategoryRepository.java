@@ -4,7 +4,10 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+
+import jakarta.persistence.LockModeType;
 
 import negocut.auction.entity.Category;
 
@@ -17,6 +20,16 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByDeletedFalseOrderBySortOrderAscIdAsc();
 
     Optional<Category> findByIdAndDeletedFalse(Long id);
+
+    // 경매 등록이 카테고리를 쓰는 동안 삭제되지 않게 공유 잠금으로 읽는다.
+    @Lock(LockModeType.PESSIMISTIC_READ)
+    @Query("select c from Category c where c.id = :id and c.deleted = false")
+    Optional<Category> findByIdForShare(Long id);
+
+    // 삭제는 배타 잠금으로 읽어, 진행 중인 등록이 끝난 뒤 상품 수를 센다.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from Category c where c.id = :id and c.deleted = false")
+    Optional<Category> findByIdForUpdate(Long id);
 
     // 이름은 삭제된 카테고리까지 포함해 유일하다. (DB 설계서의 name UNIQUE)
     Optional<Category> findByName(String name);
