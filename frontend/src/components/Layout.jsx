@@ -34,6 +34,11 @@ export default function Layout() {
           <div className="flex items-center gap-2">
             {user ? (
               <>
+                {user.memberRole === 'ADMIN' && (
+                  <Link to="/admin/categories" className="btn btn-sm btn-ghost">
+                    관리자
+                  </Link>
+                )}
                 <span className="mr-2 text-sm">{user.nickname}님</span>
                 <button type="button" className="btn btn-sm" onClick={handleLogout}>
                   로그아웃
