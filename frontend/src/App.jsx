@@ -1,12 +1,15 @@
 import { Route, Routes } from 'react-router-dom';
+import AdminLayout from './components/AdminLayout';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
 import SignupPage from './pages/SignupPage';
 
 // 화면 경로는 화면 설계서 2장을 따른다.
-// 회원 전용 화면은 앞으로 <Route element={<ProtectedRoute />}> 안에 넣는다.
+// 회원 전용 화면은 앞으로 <Route element={<ProtectedRoute />}> 안에, 관리자 화면은 role="ADMIN"을 준 ProtectedRoute 안에 넣는다.
 export default function App() {
   return (
     <Routes>
@@ -14,6 +17,11 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route element={<ProtectedRoute role="ADMIN" />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/categories" element={<AdminCategoriesPage />} />
+          </Route>
+        </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

@@ -46,6 +46,7 @@ public class SecurityConfig {
             // URL별 접근 권한 규칙
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/agreements").permitAll()  // 공개: 회원가입 화면의 약관 목록
+                .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()  // 공개: 사용 중인 카테고리 목록
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()  // 공개: 로그인, 토큰 재발급 (로그아웃은 로그인한 회원만)
                 .requestMatchers(HttpMethod.POST, "/api/members").permitAll()  // 공개: 회원가입
                 .requestMatchers(HttpMethod.GET, "/api/members/check-login-id", "/api/members/check-nickname", "/api/members/check-email").permitAll()  // 공개: 중복 확인

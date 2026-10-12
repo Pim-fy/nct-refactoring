@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { isMemberStatusBlocked } from './apiResponse';
+import { cooldownRemainingMs, createCooldownError, recordSuccess } from './requestCooldown';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -41,10 +42,23 @@ function refreshAccessToken() {
   return refreshPromise;
 }
 
+// 요청 인터셉터: 방금 성공한 쓰기 요청과 같은 요청이면 서버로 보내지 않는다. (requestCooldown.js)
+api.interceptors.request.use((config) => {
+  const remainingMs = cooldownRemainingMs(config);
+  if (remainingMs > 0) {
+    return Promise.reject(createCooldownError(config, remainingMs));
+  }
+  return config;
+});
+
 // 인터셉터: 응답을 받은 뒤 가로채서 공통 처리를 끼워 넣음.
+// 성공한 쓰기 요청은 쿨다운 기록에 남긴다.
 // 액세스 토큰 만료(401)를 감지해 재발급을 한 번 시도한 뒤 원래 요청을 재시도한다.
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    recordSuccess(response.config);
+    return response;
+  },
   async (error) => {
     // 로그인 후 정지·탈퇴된 회원이다. 서버가 쿠키를 지웠으므로 화면의 로그인 상태도 지운다. 재발급은 시도하지 않는다.
     if (isMemberStatusBlocked(error)) {
