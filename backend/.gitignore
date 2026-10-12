@@ -38,3 +38,5 @@ out/
 
 # 설정 파일 제외
 application.properties
+### Uploaded files (local) ###
+/uploads/

@@ -11,6 +11,9 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -84,12 +87,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
         HttpMessageNotReadableException.class,
         MissingServletRequestParameterException.class,
+        MissingServletRequestPartException.class,
+        MultipartException.class,
         MethodArgumentTypeMismatchException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex){
 
         ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
         log.warn("[BadRequest] {}", ex.getClass().getSimpleName());
+
+        return ResponseEntity
+            .status(errorCode.getHttpStatus())
+            .body(ApiResponse.error(ErrorResult.of(errorCode.name(), errorCode.getMessage())));
+    }
+
+    // 멀티파트 업로드가 설정한 크기 한도(이미지 한 장 5MB)를 넘으면 FILE_TOO_LARGE다.
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSize(MaxUploadSizeExceededException ex){
+
+        ErrorCode errorCode = ErrorCode.FILE_TOO_LARGE;
 
         return ResponseEntity
             .status(errorCode.getHttpStatus())

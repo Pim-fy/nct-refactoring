@@ -81,4 +81,9 @@ public class Member extends BaseTimeEntity {
         member.memberStatus = MemberStatus.NORMAL;
         return member;
     }
+
+    // 프로필로 쓰던 이미지를 지울 때 참조를 비운다. 화면은 이때 기본 이미지를 보여준다. (기능 명세서 3-3)
+    public void clearProfileImage() {
+        this.profileImageId = null;
+    }
 }

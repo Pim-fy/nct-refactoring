@@ -1,6 +1,9 @@
 # Local documents
 /docs/
 
+# Uploaded images (local). 앱을 저장소 루트에서 실행해도 올라가지 않게 한다.
+/uploads/
+
 # IDE
 /.vscode/
 /.idea/
