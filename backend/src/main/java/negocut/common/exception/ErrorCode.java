@@ -29,6 +29,11 @@ public enum ErrorCode {
     CATEGORY_NAME_DUPLICATED(HttpStatus.CONFLICT, "이미 사용 중인 카테고리 이름입니다."),
     CATEGORY_IN_USE(HttpStatus.CONFLICT, "사용 중인 카테고리는 삭제할 수 없습니다. 사용 여부만 꺼 주세요."),
 
+    // 경매
+    AUCTION_INPUT_INVALID(HttpStatus.BAD_REQUEST, "입력값을 확인해 주세요."),
+    AUCTION_END_TIME_INVALID(HttpStatus.BAD_REQUEST, "종료 시각은 지금부터 10분 뒤 이후, 30일 이내여야 합니다."),
+    AUCTION_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "상품 이미지를 한 장 이상 올려 주세요."),
+
     // 파일
     FILE_TYPE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "JPEG, PNG, WebP 이미지만 올릴 수 있습니다."),
     FILE_TOO_LARGE(HttpStatus.BAD_REQUEST, "이미지는 5MB 이하만 올릴 수 있습니다."),

@@ -20,6 +20,16 @@ export async function deleteImage(imageId) {
   return unwrap(await api.delete(`/images/${imageId}`));
 }
 
+// 서버가 응답에 담아 주는 이미지 경로(예: /api/images/101)를 <img src>에 넣을 전체 주소로 바꾼다.
+// 경로가 없으면 null이다. API 주소의 출처(주소와 포트)를 앞에 붙인다.
+export function resolveImageUrl(path) {
+  if (!path) {
+    return null;
+  }
+  const origin = new URL(BASE_URL, window.location.origin).origin;
+  return origin + path;
+}
+
 // <img src>에 넣는 주소. 서버가 파일을 읽어 응답하는 API 주소다.
 // 올린 본인에게만 보이는(아직 경매에 쓰지 않은) 상품 이미지는 쿠키가 있어야 보이는데, <img>는 다른 출처에서
 // 쿠키를 보내지 않으므로 이런 이미지를 보여 줄 때는 <img crossOrigin="use-credentials">를 쓰거나

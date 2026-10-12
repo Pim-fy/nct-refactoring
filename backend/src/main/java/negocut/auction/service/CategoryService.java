@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
@@ -99,9 +100,12 @@ public class CategoryService {
     }
 
     // 해당 카테고리를 쓰는 상품이 하나라도 있으면 삭제할 수 없다. 이때는 사용 여부만 끈다. (기능 명세서 3-10)
-    @Transactional
+    // READ_COMMITTED로 카테고리 행을 먼저 잠근 뒤 상품 수를 센다. (경매 등록은 같은 행을 공유 잠금으로 읽는다.)
+    // 첫 일반 조회 시점에 읽기 스냅샷이 고정되는 REPEATABLE READ에서는, 잠금을 기다린 사이에 커밋된 상품을 세지 못한다.
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void delete(Long categoryId) {
-        Category category = findNotDeleted(categoryId);
+        Category category = categoryRepository.findByIdForUpdate(categoryId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
         if (productRepository.countByCategoryId(category.getId()) > 0) {
             throw new BusinessException(ErrorCode.CATEGORY_IN_USE);
         }

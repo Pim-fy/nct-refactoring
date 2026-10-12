@@ -34,8 +34,18 @@ export default function Layout() {
           <div className="flex items-center gap-2">
             {user ? (
               <>
+                {user.memberRole === 'MEMBER' && (
+                  <>
+                    <Link to="/auctions/new" className="btn btn-sm btn-ghost text-neutral-content">
+                      경매 등록
+                    </Link>
+                    <Link to="/my/auctions" className="btn btn-sm btn-ghost text-neutral-content">
+                      내 경매
+                    </Link>
+                  </>
+                )}
                 {user.memberRole === 'ADMIN' && (
-                  <Link to="/admin/categories" className="btn btn-sm btn-ghost">
+                  <Link to="/admin/categories" className="btn btn-sm btn-ghost text-neutral-content">
                     관리자
                   </Link>
                 )}

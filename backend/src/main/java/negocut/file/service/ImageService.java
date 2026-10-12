@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -106,9 +107,12 @@ public class ImageService {
 
     // 올린 본인만 지울 수 있다. 경매에 쓰인 상품 이미지는 지울 수 없다. DB는 소프트 삭제하고 파일은 디스크에서 지운다.
     // 현재 프로필로 쓰던 이미지를 지우면 프로필 이미지 참조도 비운다.
-    @Transactional
+    // READ_COMMITTED: 이미지 행을 잠근 뒤에 경매 사용 여부를 읽을 때 최신 커밋 상태를 보게 한다. (AuctionService.register와 같은 이유)
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void delete(Long imageId, AuthMember requester) {
-        ImageFile image = imageFileRepository.findByIdAndDeletedFalse(imageId)
+        // 이 요청의 첫 조회여야 한다. 이미지 행을 잠근 뒤에 경매 사용 여부를 읽어야, 같은 이미지를 경매에 연결하는 요청이 먼저
+        // 끝났다면 그 결과를 볼 수 있다. (경매 등록이 같은 이미지 행을 잠그고 연결한다.)
+        ImageFile image = imageFileRepository.findByIdForUpdate(imageId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FILE_NOT_FOUND));
 
         if (!isUploader(image, requester)) {

@@ -3,8 +3,10 @@ import AdminLayout from './components/AdminLayout';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
+import AuctionRegisterPage from './pages/AuctionRegisterPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
+import MyAuctionsPage from './pages/MyAuctionsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import SignupPage from './pages/SignupPage';
 
@@ -17,6 +19,10 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route element={<ProtectedRoute role="MEMBER" />}>
+          <Route path="/auctions/new" element={<AuctionRegisterPage />} />
+          <Route path="/my/auctions" element={<MyAuctionsPage />} />
+        </Route>
         <Route element={<ProtectedRoute role="ADMIN" />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin/categories" element={<AdminCategoriesPage />} />
