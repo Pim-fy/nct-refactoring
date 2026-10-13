@@ -60,3 +60,11 @@ export const AUCTION_STATUS_BADGES = {
   FAILED: 'badge-neutral',
   STOPPED: 'badge-error',
 };
+
+// 포인트: 1234567 → "1,234,567 P". 값이 없으면 "-"다.
+export function formatPoint(value) {
+  if (value === null || value === undefined) {
+    return '-';
+  }
+  return `${Number(value).toLocaleString('ko-KR')} P`;
+}

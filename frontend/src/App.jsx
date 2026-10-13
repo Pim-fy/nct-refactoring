@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import MyAuctionsPage from './pages/MyAuctionsPage';
 import NotFoundPage from './pages/NotFoundPage';
+import PointPage from './pages/PointPage';
 import SignupPage from './pages/SignupPage';
 
 // 화면 경로는 화면 설계서 2장을 따른다.
@@ -24,6 +25,7 @@ export default function App() {
         <Route element={<ProtectedRoute role="MEMBER" />}>
           <Route path="/auctions/new" element={<AuctionRegisterPage />} />
           <Route path="/my/auctions" element={<MyAuctionsPage />} />
+          <Route path="/my/points" element={<PointPage />} />
         </Route>
         <Route element={<ProtectedRoute role="ADMIN" />}>
           <Route element={<AdminLayout />}>

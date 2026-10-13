@@ -42,6 +42,9 @@ export default function Layout() {
                     <Link to="/my/auctions" className="btn btn-sm btn-ghost text-neutral-content">
                       내 경매
                     </Link>
+                    <Link to="/my/points" className="btn btn-sm btn-ghost text-neutral-content">
+                      포인트
+                    </Link>
                   </>
                 )}
                 {user.memberRole === 'ADMIN' && (
