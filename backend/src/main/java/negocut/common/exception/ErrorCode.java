@@ -35,6 +35,10 @@ public enum ErrorCode {
     AUCTION_NOT_FOUND(HttpStatus.NOT_FOUND, "경매를 찾을 수 없습니다."),
     AUCTION_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "상품 이미지를 한 장 이상 올려 주세요."),
 
+    // 포인트
+    POINT_CHARGE_AMOUNT_INVALID(HttpStatus.BAD_REQUEST, "충전 금액은 1,000 포인트 단위로 1,000 이상 100만 이하여야 합니다."),
+    POINT_BALANCE_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "충전 후 보유 포인트가 1,000만 포인트를 넘을 수 없습니다."),
+
     // 파일
     FILE_TYPE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "JPEG, PNG, WebP 이미지만 올릴 수 있습니다."),
     FILE_TOO_LARGE(HttpStatus.BAD_REQUEST, "이미지는 5MB 이하만 올릴 수 있습니다."),

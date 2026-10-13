@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 import negocut.common.entity.BaseTimeEntity;
 import negocut.member.entity.Member;
 
-// 회원가입 트랜잭션에서 함께 만들기 위해 1단계에서 필드만 먼저 둔다. 충전·예약 등 동작은 3단계에서 추가한다.
+// 회원가입 트랜잭션에서 함께 만든다. 충전은 여기에 있고, 예약·해제·지급은 입찰·낙찰·거래 구현에서 추가한다.
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
@@ -45,5 +45,15 @@ public class PointBalance extends BaseTimeEntity {
         balance.totalPoint = BigDecimal.ZERO;
         balance.reservedPoint = BigDecimal.ZERO;
         return balance;
+    }
+
+    // 사용 가능 포인트 = 보유 − 예약
+    public BigDecimal availablePoint() {
+        return totalPoint.subtract(reservedPoint);
+    }
+
+    // 보유 포인트를 늘린다. 한도 확인은 호출하는 쪽에서 한다.
+    public void charge(BigDecimal amount) {
+        this.totalPoint = this.totalPoint.add(amount);
     }
 }
