@@ -80,6 +80,11 @@ export default function MyBidsPage() {
                             {bid.isTopBidder ? '최고 입찰 중' : '밀려남'}
                           </span>
                         )}
+                        {bid.auctionStatus === 'SOLD' && (
+                          <span className={`badge badge-sm ${bid.isTopBidder ? 'badge-success' : 'badge-ghost'}`}>
+                            {bid.isTopBidder ? '낙찰 받음' : '낙찰 실패'}
+                          </span>
+                        )}
                         {bid.isReserved && <span className="badge badge-sm badge-outline">포인트 예약 중</span>}
                       </div>
                       <p className="truncate font-medium">{bid.productName}</p>

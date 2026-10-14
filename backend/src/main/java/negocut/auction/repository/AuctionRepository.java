@@ -1,5 +1,7 @@
 package negocut.auction.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -18,6 +20,10 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from Auction a where a.id = :id")
     Optional<Auction> findByIdForUpdate(Long id);
+
+    // 종료 시각이 지났는데 아직 진행 중인 경매의 식별자. 종료 시각이 이른 것부터 한 번에 일정 개수만 읽는다.
+    @Query("select a.id from Auction a where a.auctionStatus = negocut.auction.entity.AuctionStatus.IN_PROGRESS and a.endAt <= :now order by a.endAt, a.id")
+    List<Long> findIdsToClose(LocalDateTime now, Pageable pageable);
 
     // 내가 입찰한 경매. 내가 마지막으로 입찰한 순서(최신 먼저)다. 목록에 필요한 상품과 카테고리를 함께 읽는다.
     @Query(value = "select a from Auction a join fetch a.product p join fetch p.category "

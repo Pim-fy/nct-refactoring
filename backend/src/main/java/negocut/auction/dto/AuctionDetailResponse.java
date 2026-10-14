@@ -8,6 +8,7 @@ import java.time.ZoneId;
 import java.util.List;
 
 import negocut.auction.entity.Auction;
+import negocut.auction.entity.AuctionResult;
 import negocut.auction.entity.AuctionStatus;
 import negocut.auction.entity.ProductImage;
 import negocut.auth.security.AuthMember;
@@ -15,7 +16,7 @@ import negocut.common.util.Nicknames;
 import negocut.member.entity.MemberRole;
 import negocut.member.entity.MemberStatus;
 
-// API 명세서 3-1 경매 상세. 입찰 내역과 낙찰 결과(result)는 입찰·낙찰 구현에서 채운다.
+// API 명세서 3-1 경매 상세. 낙찰된 경매에는 낙찰 결과(result)를 담고, 그 밖에는 null이다.
 public record AuctionDetailResponse(
         Long auctionId,
         AuctionStatus auctionStatus,
@@ -23,7 +24,7 @@ public record AuctionDetailResponse(
         ProductInfo product,
         TermsInfo terms,
         BiddingInfo bidding,
-        Object result,
+        ResultInfo result,
         String stoppedReason) {
 
     private static final ZoneId ZONE = ZoneId.of("Asia/Seoul");
@@ -46,9 +47,22 @@ public record AuctionDetailResponse(
             long remainingSeconds, boolean canBid, boolean isTopBidder) {
     }
 
+    // 낙찰 결과. 낙찰자는 일부를 가려서 보여 주고, isWinner는 로그인한 보는 사람이 낙찰자일 때만 참이다.
+    public record ResultInfo(String maskedWinnerNickname, BigDecimal winningPrice, OffsetDateTime confirmedAt, boolean isWinner) {
+
+        public static ResultInfo of(AuctionResult result, AuthMember viewer) {
+            return new ResultInfo(
+                    Nicknames.mask(result.getWinner().getNickname()),
+                    result.getWinningPrice(),
+                    result.getConfirmedAt().atZone(ZONE).toOffsetDateTime(),
+                    viewer != null && viewer.memberId().equals(result.getWinner().getId()));
+        }
+    }
+
     // viewer는 로그인하지 않았으면 null이다. stoppedReason은 호출하는 쪽이 볼 수 있는 경우에만 값을 넘긴다.
+    // result는 낙찰된 경매의 낙찰 결과이고 없으면 null이다.
     public static AuctionDetailResponse of(Auction auction, List<ProductImage> images, AuthMember viewer,
-            boolean isTopBidder, LocalDateTime now) {
+            boolean isTopBidder, AuctionResult result, LocalDateTime now) {
         boolean isSeller = viewer != null && viewer.memberId().equals(auction.getSeller().getId());
         long remainingSeconds = Duration.between(now, auction.getEndAt()).toSeconds();   // 0 이하이면 종료 처리를 기다리는 상태다.
         BigDecimal currentPrice = auction.getCurrentPrice();
@@ -72,7 +86,7 @@ public record AuctionDetailResponse(
                         auction.getEndAt().atZone(ZONE).toOffsetDateTime(), "PARCEL", "SELLER"),
                 new BiddingInfo(currentPrice, auction.getBidCount(), minimumBidPrice, remainingSeconds,
                         canBid(auction, viewer, isSeller, remainingSeconds), isTopBidder),
-                null,
+                result == null ? null : ResultInfo.of(result, viewer),
                 auction.getAuctionStatus() == AuctionStatus.STOPPED ? auction.getStoppedReason() : null);
     }
 

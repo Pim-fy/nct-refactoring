@@ -45,4 +45,6 @@ tasks.named('test') {
 	systemProperty 'app.jwt.secret', 'test-only-jwt-signing-key-for-unit-tests-0123456789abcdef'
 	// 메일은 실제로 보내지 않고 콘솔 발송기를 쓴다. 이 값을 지정하지 않으면 앱이 시작되지 않는다. (MailSenderSettingGuard)
 	systemProperty 'app.mail.enabled', 'false'
+	// 경매 종료 스케줄러는 끈다. 테스트가 만든 종료 시각이 지난 경매를 도중에 처리해 버리지 않게 하고, 종료 처리 서비스를 직접 불러 확인한다.
+	systemProperty 'app.scheduler.enabled', 'false'
 }

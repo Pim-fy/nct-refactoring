@@ -16,10 +16,12 @@ import lombok.RequiredArgsConstructor;
 import negocut.auction.dto.AuctionDetailResponse;
 import negocut.auction.dto.AuctionSummaryResponse;
 import negocut.auction.entity.Auction;
+import negocut.auction.entity.AuctionResult;
 import negocut.auction.entity.AuctionSort;
 import negocut.auction.entity.AuctionStatus;
 import negocut.auction.repository.AuctionRepository;
 import negocut.auction.repository.AuctionSearchRepository;
+import negocut.auction.repository.AuctionResultRepository;
 import negocut.auction.repository.BidRepository;
 import negocut.auction.repository.ProductImageRepository;
 import negocut.auth.security.AuthMember;
@@ -43,6 +45,7 @@ public class AuctionQueryService {
     private final AuctionSearchRepository auctionSearchRepository;
     private final ProductImageRepository productImageRepository;
     private final BidRepository bidRepository;
+    private final AuctionResultRepository auctionResultRepository;
 
     // 공개 목록. 중단된 경매는 보이지 않는다. 검색은 상품명과 상품 설명에서 찾는다.
     public PageResult<AuctionSummaryResponse> search(Long categoryId, String keyword, String sortValue, int page, int size) {
@@ -69,8 +72,11 @@ public class AuctionQueryService {
     // 공개 상세. viewer는 로그인하지 않았으면 null이다.
     public AuctionDetailResponse getDetail(Long auctionId, AuthMember viewer) {
         Auction auction = findVisible(auctionId, viewer);
+        AuctionResult result = auction.getAuctionStatus() == AuctionStatus.SOLD
+                ? auctionResultRepository.findByAuctionId(auction.getId()).orElse(null)
+                : null;
         return AuctionDetailResponse.of(auction, productImageRepository.findByProductId(auction.getProduct().getId()),
-                viewer, isTopBidder(auction, viewer), LocalDateTime.now(ZONE));
+                viewer, isTopBidder(auction, viewer), result, LocalDateTime.now(ZONE));
     }
 
     // 보는 사람이 열 수 있는 경매를 읽는다. 없는 경매와, 중단된 경매를 열 수 없는 사람은 같은 404다.
