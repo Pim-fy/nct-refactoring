@@ -76,6 +76,38 @@ function cannotBidReason(user, bidding) {
   return '현재 계정으로는 입찰할 수 없습니다.';
 }
 
+// 낙찰 결과(화면 설계서 3-3). 낙찰 금액과 낙찰자(일부 가림), 확정 시각을 보여 주고,
+// 낙찰자와 판매자에게는 거래 단계 안내를 덧붙인다. 거래 화면은 이후 단계에서 연결한다.
+function SoldNotice({ result, isSeller }) {
+  if (!result) {
+    return <p className="alert alert-success mt-3 text-sm">낙찰된 경매입니다.</p>;
+  }
+  return (
+    <div className="mt-3 rounded-box border border-success/40 bg-success/10 p-4 text-sm">
+      <p className="font-bold text-success">낙찰되었습니다</p>
+      <dl className="mt-2 grid grid-cols-[6rem_1fr] gap-y-1">
+        <dt className="text-base-content/60">낙찰 금액</dt>
+        <dd className="font-medium">{formatWon(result.winningPrice)}</dd>
+        <dt className="text-base-content/60">낙찰자</dt>
+        <dd>
+          {result.maskedWinnerNickname}
+          {result.isWinner && ' (나)'}
+        </dd>
+        <dt className="text-base-content/60">확정 시각</dt>
+        <dd>{formatDateTime(result.confirmedAt)}</dd>
+      </dl>
+      {result.isWinner && (
+        <p className="mt-3">
+          낙찰 금액은 포인트로 예약되어 있습니다. 거래 단계에서 배송지를 입력하면 판매자가 택배로 발송합니다. (거래 화면은 준비 중입니다.)
+        </p>
+      )}
+      {isSeller && (
+        <p className="mt-3">낙찰자가 배송지를 입력하면 낙찰 후 5일 안에 택배로 발송해 주세요. 배송비는 판매자가 부담합니다. (거래 화면은 준비 중입니다.)</p>
+      )}
+    </div>
+  );
+}
+
 function NotFound({ message }) {
   return (
     <div className="mx-auto max-w-md py-16 text-center">
@@ -200,7 +232,7 @@ function AuctionDetailView({ auction, version, onChanged }) {
             </p>
           )}
 
-          {auction.auctionStatus === 'SOLD' && <p className="alert alert-success mt-3 text-sm">낙찰된 경매입니다.</p>}
+          {auction.auctionStatus === 'SOLD' && <SoldNotice result={auction.result} isSeller={seller.isMine} />}
           {auction.auctionStatus === 'FAILED' && <p className="alert mt-3 text-sm">입찰 없이 종료된 경매입니다.</p>}
           {auction.auctionStatus === 'STOPPED' && (
             <p className="alert alert-error mt-3 text-sm">
