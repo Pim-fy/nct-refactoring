@@ -3,16 +3,20 @@ import { Link, useParams } from 'react-router-dom';
 import { getErrorCode, getErrorMessage } from '../api/apiResponse';
 import { fetchAuction } from '../api/auctionApi';
 import { resolveImageUrl } from '../api/imageApi';
+import BidHistory from '../components/BidHistory';
+import BidPanel from '../components/BidPanel';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { AUCTION_STATUS_BADGES, AUCTION_STATUS_LABELS, formatDateTime, formatRemaining, formatWon } from '../utils/format';
 
-// 경매 상세 (화면 설계서 3-3, 기능 명세서 3-4). 입찰 영역과 입찰 내역은 입찰 기능에서 추가한다.
+// 경매 상세 (화면 설계서 3-3, 기능 명세서 3-4, 3-6). 입찰할 수 있는 회원에게는 입찰 영역을, 모두에게 입찰 내역을 보여 준다.
 export default function AuctionDetailPage() {
   const { id } = useParams();
   const toast = useToast();
   // 요청한 경매(id)와 결과를 함께 두어, 다른 경매로 바뀌면 이전 결과를 "불러오는 중"으로 본다.
   const [result, setResult] = useState({ id: null, auction: null, status: 'loading' });
   const validId = /^\d+$/.test(id);   // 숫자가 아닌 주소는 서버에 묻지 않고 없는 경매로 본다.
+  const [version, setVersion] = useState(0);   // 입찰해서 경매 정보가 바뀌었을 때 다시 받기 위한 값
 
   useEffect(() => {
     if (!validId) {
@@ -32,14 +36,15 @@ export default function AuctionDetailPage() {
         if (getErrorCode(error) === 'AUCTION_NOT_FOUND') {
           setResult({ id, auction: null, status: 'notFound' });
         } else {
-          setResult({ id, auction: null, status: 'failed' });
+          // 입찰 뒤 다시 받다가 실패하면 이미 보이던 경매는 그대로 두고 알림만 보여 준다.
+          setResult((previous) => (previous.id === id && previous.status === 'ok' ? previous : { id, auction: null, status: 'failed' }));
           toast.error(getErrorMessage(error));
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [id, validId, toast]);
+  }, [id, validId, version, toast]);
 
   if (!validId) {
     return <NotFound message="경매를 찾을 수 없습니다." />;
@@ -54,7 +59,21 @@ export default function AuctionDetailPage() {
   if (result.status !== 'ok') {
     return <NotFound message={result.status === 'notFound' ? '경매를 찾을 수 없습니다.' : '경매 정보를 불러오지 못했습니다.'} />;
   }
-  return <AuctionDetailView auction={result.auction} />;
+  return <AuctionDetailView auction={result.auction} version={version} onChanged={() => setVersion((value) => value + 1)} />;
+}
+
+// 로그인했는데 입찰할 수 없는 이유를 알려 준다. 판매자 본인은 따로 안내하므로 여기 오지 않는다.
+function cannotBidReason(user, bidding) {
+  if (user.memberRole === 'ADMIN') {
+    return '관리자 계정은 입찰할 수 없습니다.';
+  }
+  if (user.memberStatus === 'RESTRICTED_TRADE') {
+    return '거래 제한 상태에서는 입찰할 수 없습니다.';
+  }
+  if (bidding.remainingSeconds <= 0) {
+    return '마감 시각이 지나 입찰할 수 없습니다. 종료 처리를 기다리는 중입니다.';
+  }
+  return '현재 계정으로는 입찰할 수 없습니다.';
 }
 
 function NotFound({ message }) {
@@ -68,7 +87,8 @@ function NotFound({ message }) {
   );
 }
 
-function AuctionDetailView({ auction }) {
+function AuctionDetailView({ auction, version, onChanged }) {
+  const { user } = useAuth();
   const { product, terms, bidding, seller } = auction;
   const [selected, setSelected] = useState(0);
   const images = product.images;
@@ -157,6 +177,29 @@ function AuctionDetailView({ auction }) {
             )}
           </div>
 
+          {bidding.canBid && (
+            <BidPanel
+              key={`${bidding.minimumBidPrice}|${bidding.isTopBidder}`}
+              auctionId={auction.auctionId}
+              bidding={bidding}
+              bidUnit={terms.bidUnit}
+              onChanged={onChanged}
+            />
+          )}
+          {inProgress && !user && (
+            <p className="mt-4 rounded-box border border-base-300 p-4 text-sm">
+              입찰하려면 로그인해야 합니다.{' '}
+              <Link to="/login" className="link link-primary">
+                로그인
+              </Link>
+            </p>
+          )}
+          {inProgress && user && !bidding.canBid && !seller.isMine && (
+            <p className="mt-4 rounded-box border border-base-300 p-4 text-sm text-base-content/70">
+              {cannotBidReason(user, bidding)}
+            </p>
+          )}
+
           {auction.auctionStatus === 'SOLD' && <p className="alert alert-success mt-3 text-sm">낙찰된 경매입니다.</p>}
           {auction.auctionStatus === 'FAILED' && <p className="alert mt-3 text-sm">입찰 없이 종료된 경매입니다.</p>}
           {auction.auctionStatus === 'STOPPED' && (
@@ -186,6 +229,8 @@ function AuctionDetailView({ auction }) {
         <h2 className="mb-2 font-bold">상태 설명</h2>
         <p className="whitespace-pre-wrap text-sm">{product.conditionNote}</p>
       </section>
+
+      <BidHistory auctionId={auction.auctionId} version={version} />
     </div>
   );
 }

@@ -20,6 +20,7 @@ import negocut.auction.entity.AuctionSort;
 import negocut.auction.entity.AuctionStatus;
 import negocut.auction.repository.AuctionRepository;
 import negocut.auction.repository.AuctionSearchRepository;
+import negocut.auction.repository.BidRepository;
 import negocut.auction.repository.ProductImageRepository;
 import negocut.auth.security.AuthMember;
 import negocut.common.exception.BusinessException;
@@ -41,6 +42,7 @@ public class AuctionQueryService {
     private final AuctionRepository auctionRepository;
     private final AuctionSearchRepository auctionSearchRepository;
     private final ProductImageRepository productImageRepository;
+    private final BidRepository bidRepository;
 
     // 공개 목록. 중단된 경매는 보이지 않는다. 검색은 상품명과 상품 설명에서 찾는다.
     public PageResult<AuctionSummaryResponse> search(Long categoryId, String keyword, String sortValue, int page, int size) {
@@ -65,16 +67,33 @@ public class AuctionQueryService {
     }
 
     // 공개 상세. viewer는 로그인하지 않았으면 null이다.
-    // 중단된 경매는 판매자만 볼 수 있고, 그 밖의 사용자에게는 없는 경매와 같은 404다. (입찰자는 입찰 구현에서 추가한다.)
     public AuctionDetailResponse getDetail(Long auctionId, AuthMember viewer) {
+        Auction auction = findVisible(auctionId, viewer);
+        return AuctionDetailResponse.of(auction, productImageRepository.findByProductId(auction.getProduct().getId()),
+                viewer, isTopBidder(auction, viewer), LocalDateTime.now(ZONE));
+    }
+
+    // 보는 사람이 열 수 있는 경매를 읽는다. 없는 경매와, 중단된 경매를 열 수 없는 사람은 같은 404다.
+    // 중단된 경매는 판매자와 입찰한 적이 있는 회원만 볼 수 있다. viewer는 로그인하지 않았으면 null이다.
+    public Auction findVisible(Long auctionId, AuthMember viewer) {
         Auction auction = auctionRepository.findDetailById(auctionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.AUCTION_NOT_FOUND));
         if (auction.getAuctionStatus() == AuctionStatus.STOPPED
-                && (viewer == null || !viewer.memberId().equals(auction.getSeller().getId()))) {
+                && (viewer == null || !(viewer.memberId().equals(auction.getSeller().getId())
+                        || bidRepository.existsByAuctionIdAndBidderId(auction.getId(), viewer.memberId())))) {
             throw new BusinessException(ErrorCode.AUCTION_NOT_FOUND);
         }
-        return AuctionDetailResponse.of(auction, productImageRepository.findByProductId(auction.getProduct().getId()),
-                viewer, LocalDateTime.now(ZONE));
+        return auction;
+    }
+
+    // 현재 최고 입찰자가 보는 사람 본인인지
+    private boolean isTopBidder(Auction auction, AuthMember viewer) {
+        if (viewer == null || auction.getTopBidId() == null) {
+            return false;
+        }
+        return bidRepository.findWithBidder(auction.getTopBidId())
+                .map(bid -> bid.getBidder().getId().equals(viewer.memberId()))
+                .orElse(false);
     }
 
     // 검색어의 %, _, 이스케이프 문자는 글자 그대로 찾도록 이스케이프한다.

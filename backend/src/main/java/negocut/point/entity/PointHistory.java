@@ -62,13 +62,20 @@ public class PointHistory extends BaseTimeEntity {
     private Long tradeId;
 
     // 처리 후 잔액을 함께 남긴다. 입찰·거래와 관련 없는 변동(충전)은 auction, tradeId가 null이다.
+    // 금액은 항상 양수이고, 변동의 방향은 유형이 정한다. (충전·예약·해제·반환·지급)
     public static PointHistory record(Member member, PointHistoryType type, BigDecimal amount, PointBalance balanceAfter) {
+        return record(member, type, amount, balanceAfter, null);
+    }
+
+    // 입찰과 관련된 변동(예약·해제)은 경매를 함께 남긴다.
+    public static PointHistory record(Member member, PointHistoryType type, BigDecimal amount, PointBalance balanceAfter, Auction auction) {
         PointHistory history = new PointHistory();
         history.member = member;
         history.historyType = type;
         history.amount = amount;
         history.totalPointAfter = balanceAfter.getTotalPoint();
         history.reservedPointAfter = balanceAfter.getReservedPoint();
+        history.auction = auction;
         return history;
     }
 }

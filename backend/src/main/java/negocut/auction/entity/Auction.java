@@ -65,7 +65,7 @@ public class Auction extends BaseTimeEntity {
     @Column(precision = 15, scale = 2)
     private BigDecimal currentPrice;
 
-    // 현재 최고 입찰. 입찰 엔티티는 입찰 구현에서 만들므로, 그때까지는 외래 키 없이 식별자만 둔다.
+    // 현재 최고 입찰의 식별자. 입찰이 경매를 참조하므로 서로 참조하지 않게 식별자만 둔다.
     private Long topBidId;
 
     @Column(nullable = false)
@@ -87,6 +87,14 @@ public class Auction extends BaseTimeEntity {
     private Long stoppedByAdminId;
 
     private LocalDateTime stoppedAt;
+
+    // 새 입찰이 최고 입찰이 된다. 현재가와 입찰 수, 최고 입찰 참조를 함께 갱신한다. (기능 명세서 3-6)
+    // 입찰이 저장되어 식별자가 있어야 한다.
+    public void applyBid(Bid bid) {
+        this.currentPrice = bid.getBidPrice();
+        this.topBidId = bid.getId();
+        this.bidCount += 1;
+    }
 
     // 1차에서는 등록하면 바로 진행 상태로 공개한다. (기능 명세서 2-2)
     public static Auction register(Product product, Member seller, BigDecimal startPrice, BigDecimal bidUnit, LocalDateTime endAt) {

@@ -8,6 +8,7 @@ import AuctionRegisterPage from './pages/AuctionRegisterPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import MyAuctionsPage from './pages/MyAuctionsPage';
+import MyBidsPage from './pages/MyBidsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import PointPage from './pages/PointPage';
 import SignupPage from './pages/SignupPage';
@@ -25,6 +26,7 @@ export default function App() {
         <Route element={<ProtectedRoute role="MEMBER" />}>
           <Route path="/auctions/new" element={<AuctionRegisterPage />} />
           <Route path="/my/auctions" element={<MyAuctionsPage />} />
+          <Route path="/my/bids" element={<MyBidsPage />} />
           <Route path="/my/points" element={<PointPage />} />
         </Route>
         <Route element={<ProtectedRoute role="ADMIN" />}>

@@ -35,7 +35,14 @@ public enum ErrorCode {
     AUCTION_NOT_FOUND(HttpStatus.NOT_FOUND, "경매를 찾을 수 없습니다."),
     AUCTION_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "상품 이미지를 한 장 이상 올려 주세요."),
 
+    // 입찰
+    AUCTION_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 경매가 아닙니다."),
+    BID_SELF_AUCTION_NOT_ALLOWED(HttpStatus.FORBIDDEN, "본인이 등록한 경매에는 입찰할 수 없습니다."),
+    BID_AMOUNT_TOO_LOW(HttpStatus.BAD_REQUEST, "입찰 금액이 최소 입찰 금액보다 낮습니다."),
+    BID_UNIT_MISMATCH(HttpStatus.BAD_REQUEST, "입찰 금액은 입찰 단위의 배수여야 합니다."),
+
     // 포인트
+    POINT_NOT_ENOUGH(HttpStatus.CONFLICT, "사용 가능한 포인트가 부족합니다."),
     POINT_CHARGE_AMOUNT_INVALID(HttpStatus.BAD_REQUEST, "충전 금액은 1,000 포인트 단위로 1,000 이상 100만 이하여야 합니다."),
     POINT_BALANCE_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "충전 후 보유 포인트가 1,000만 포인트를 넘을 수 없습니다."),
 

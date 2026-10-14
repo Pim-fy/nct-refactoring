@@ -41,12 +41,14 @@ public record AuctionDetailResponse(
             String deliveryMethod, String shippingFeeBearer) {
     }
 
+    // isTopBidder는 로그인한 보는 사람이 현재 최고 입찰자일 때만 참이다.
     public record BiddingInfo(BigDecimal currentPrice, int bidCount, BigDecimal minimumBidPrice,
-            long remainingSeconds, boolean canBid) {
+            long remainingSeconds, boolean canBid, boolean isTopBidder) {
     }
 
     // viewer는 로그인하지 않았으면 null이다. stoppedReason은 호출하는 쪽이 볼 수 있는 경우에만 값을 넘긴다.
-    public static AuctionDetailResponse of(Auction auction, List<ProductImage> images, AuthMember viewer, LocalDateTime now) {
+    public static AuctionDetailResponse of(Auction auction, List<ProductImage> images, AuthMember viewer,
+            boolean isTopBidder, LocalDateTime now) {
         boolean isSeller = viewer != null && viewer.memberId().equals(auction.getSeller().getId());
         long remainingSeconds = Duration.between(now, auction.getEndAt()).toSeconds();   // 0 이하이면 종료 처리를 기다리는 상태다.
         BigDecimal currentPrice = auction.getCurrentPrice();
@@ -69,7 +71,7 @@ public record AuctionDetailResponse(
                 new TermsInfo(auction.getStartPrice(), auction.getBidUnit(),
                         auction.getEndAt().atZone(ZONE).toOffsetDateTime(), "PARCEL", "SELLER"),
                 new BiddingInfo(currentPrice, auction.getBidCount(), minimumBidPrice, remainingSeconds,
-                        canBid(auction, viewer, isSeller, remainingSeconds)),
+                        canBid(auction, viewer, isSeller, remainingSeconds), isTopBidder),
                 null,
                 auction.getAuctionStatus() == AuctionStatus.STOPPED ? auction.getStoppedReason() : null);
     }
