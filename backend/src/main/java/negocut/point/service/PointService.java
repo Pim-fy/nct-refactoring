@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import negocut.auction.entity.Auction;
 import negocut.common.exception.BusinessException;
 import negocut.common.exception.ErrorCode;
 import negocut.member.entity.Member;
@@ -18,7 +19,7 @@ import negocut.point.entity.PointHistoryType;
 import negocut.point.repository.PointBalanceRepository;
 import negocut.point.repository.PointHistoryRepository;
 
-// 내 포인트 조회와 충전. (기능 명세서 3-5) 예약·해제·지급은 입찰·낙찰·거래 구현에서 추가한다.
+// 내 포인트 조회와 충전, 입찰의 포인트 예약·해제. (기능 명세서 3-5) 반환·지급은 거래 구현에서 추가한다.
 @Service
 @RequiredArgsConstructor
 public class PointService {
@@ -51,6 +52,22 @@ public class PointService {
         Member member = memberRepository.getReferenceById(memberId);
         pointHistoryRepository.save(PointHistory.record(member, PointHistoryType.CHARGE, amount, balance));
         return PointResponse.from(balance);
+    }
+
+    // 입찰로 포인트를 예약한다. 호출하는 쪽이 잔액 행을 잠근 트랜잭션 안에서 불러야 한다. (입찰 처리)
+    // 사용 가능 포인트(보유 − 예약)를 넘으면 예약하지 않고 거부한다.
+    public void reserve(PointBalance balance, Member member, BigDecimal amount, Auction auction) {
+        if (balance.availablePoint().compareTo(amount) < 0) {
+            throw new BusinessException(ErrorCode.POINT_NOT_ENOUGH);
+        }
+        balance.reserve(amount);
+        pointHistoryRepository.save(PointHistory.record(member, PointHistoryType.RESERVE, amount, balance, auction));
+    }
+
+    // 더 높은 입찰에 밀린 입찰자의 예약을 푼다. 호출하는 쪽이 잔액 행을 잠근 트랜잭션 안에서 불러야 한다.
+    public void release(PointBalance balance, Member member, BigDecimal amount, Auction auction) {
+        balance.release(amount);
+        pointHistoryRepository.save(PointHistory.record(member, PointHistoryType.RELEASE, amount, balance, auction));
     }
 
     // 범위(1,000~100만)는 요청 형식에서 확인했다. 여기서는 정수 표기이고 1,000 단위인지 본다.

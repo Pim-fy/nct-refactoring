@@ -56,4 +56,17 @@ public class PointBalance extends BaseTimeEntity {
     public void charge(BigDecimal amount) {
         this.totalPoint = this.totalPoint.add(amount);
     }
+
+    // 입찰로 포인트를 예약한다. 사용 가능 포인트 확인은 호출하는 쪽에서 한다.
+    public void reserve(BigDecimal amount) {
+        this.reservedPoint = this.reservedPoint.add(amount);
+    }
+
+    // 예약을 풀어 사용 가능 포인트로 되돌린다. 예약보다 많이 풀 수는 없다.
+    public void release(BigDecimal amount) {
+        if (amount.compareTo(reservedPoint) > 0) {
+            throw new IllegalStateException("예약 포인트보다 많이 해제할 수 없습니다. reserved=" + reservedPoint + ", release=" + amount);
+        }
+        this.reservedPoint = this.reservedPoint.subtract(amount);
+    }
 }

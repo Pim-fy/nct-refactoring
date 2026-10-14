@@ -47,7 +47,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/agreements").permitAll()  // 공개: 회원가입 화면의 약관 목록
                 .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()  // 공개: 사용 중인 카테고리 목록
-                .requestMatchers(HttpMethod.GET, "/api/auctions", "/api/auctions/*").permitAll()  // 공개: 경매 목록·상세. 입찰 가능 여부와 중단 경매 열람은 서비스가 로그인 정보로 판단
+                .requestMatchers(HttpMethod.GET, "/api/auctions", "/api/auctions/*", "/api/auctions/*/bids").permitAll()  // 공개: 경매 목록·상세. 입찰 가능 여부와 중단 경매 열람은 서비스가 로그인 정보로 판단
                 .requestMatchers(HttpMethod.GET, "/api/images/*").permitAll()  // 공개: 이미지 조회. 아직 경매에 쓰지 않은 상품 이미지는 컨트롤러에서 올린 본인만 허용
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()  // 공개: 로그인, 토큰 재발급 (로그아웃은 로그인한 회원만)
                 .requestMatchers(HttpMethod.POST, "/api/members").permitAll()  // 공개: 회원가입
