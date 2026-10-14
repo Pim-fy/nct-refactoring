@@ -96,6 +96,12 @@ public class Auction extends BaseTimeEntity {
         this.bidCount += 1;
     }
 
+    // 종료 시각이 지난 경매를 낙찰 또는 유찰로 확정한다. 종료 처리 시각을 남긴다. (기능 명세서 3-4 경매 종료 처리)
+    public void close(AuctionStatus result, LocalDateTime closedAt) {
+        this.auctionStatus = result;
+        this.closedAt = closedAt;
+    }
+
     // 1차에서는 등록하면 바로 진행 상태로 공개한다. (기능 명세서 2-2)
     public static Auction register(Product product, Member seller, BigDecimal startPrice, BigDecimal bidUnit, LocalDateTime endAt) {
         Auction auction = new Auction();
