@@ -16,6 +16,7 @@ import negocut.point.repository.PointBalanceRepository;
 import negocut.point.service.PointService;
 import negocut.trade.entity.Trade;
 import negocut.trade.entity.TradeStatus;
+import negocut.trade.repository.TradeCancelRequestRepository;
 import negocut.trade.repository.TradeRepository;
 
 // 구매 확정과 포인트 지급. 두 단계를 서로 다른 트랜잭션으로 처리하려고 별도 빈으로 둔다. (기능 명세서 3-8 거래 상태 변경)
@@ -31,6 +32,7 @@ public class TradeConfirmProcessor {
     private final TradeRepository tradeRepository;
     private final PointBalanceRepository pointBalanceRepository;
     private final PointService pointService;
+    private final TradeCancelRequestRepository cancelRequestRepository;
 
     // 낙찰자가 구매를 확정한다. 낙찰자만, 진행 상태에서만 할 수 있다. 이미 확정되었거나 완료된 거래는 중복 처리다.
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -46,7 +48,9 @@ public class TradeConfirmProcessor {
         if (trade.getTradeStatus() != TradeStatus.IN_PROGRESS) {
             throw new BusinessException(ErrorCode.TRADE_STATUS_INVALID);
         }
-        trade.confirm(LocalDateTime.now(ZONE), false);
+        LocalDateTime now = LocalDateTime.now(ZONE);
+        trade.confirm(now, false);
+        closeProcessingCancelRequest(tradeId, now);
     }
 
     // 발송 후 10일이 지나도록 구매 확정이 없는 거래를 시스템이 확정한다. 이미 처리되었거나 아직 기한 전이면 하지 않고 false를 돌려준다.
@@ -59,7 +63,14 @@ public class TradeConfirmProcessor {
             return false;
         }
         trade.confirm(now, true);
+        closeProcessingCancelRequest(tradeId, now);
         return true;
+    }
+
+    // 거래가 구매 확정으로 바뀌면 처리 중인 취소 요청을 같은 트랜잭션에서 종결로 닫는다.
+    // 남은 요청으로 취소가 다시 성립해 포인트가 이중으로 나가는 것을 막는다. (기능 명세서 3-8 거래 취소)
+    private void closeProcessingCancelRequest(Long tradeId, LocalDateTime now) {
+        cancelRequestRepository.findProcessingByTradeId(tradeId).ifPresent(request -> request.close(now));
     }
 
     // 구매 확정된 거래의 포인트를 지급하고 완료로 바꾼다. 지급과 완료 전환은 하나의 트랜잭션이다.

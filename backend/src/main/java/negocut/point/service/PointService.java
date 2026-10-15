@@ -74,6 +74,13 @@ public class PointService {
         pointHistoryRepository.save(PointHistory.recordForTrade(seller, PointHistoryType.PAYOUT, amount, sellerBalance, tradeId));
     }
 
+    // 거래가 취소되어 낙찰자의 예약 포인트를 돌려준다. 예약만 풀리고 보유 포인트는 그대로이며 반환 이력을 남기고 거래를 연결한다.
+    // 호출하는 쪽이 낙찰자의 잔액 행을 잠근 트랜잭션 안에서 불러야 한다.
+    public void refund(PointBalance buyerBalance, Member buyer, BigDecimal amount, Long tradeId) {
+        buyerBalance.release(amount);
+        pointHistoryRepository.save(PointHistory.recordForTrade(buyer, PointHistoryType.REFUND, amount, buyerBalance, tradeId));
+    }
+
     // 더 높은 입찰에 밀린 입찰자의 예약을 푼다. 호출하는 쪽이 잔액 행을 잠근 트랜잭션 안에서 불러야 한다.
     public void release(PointBalance balance, Member member, BigDecimal amount, Auction auction) {
         balance.release(amount);
