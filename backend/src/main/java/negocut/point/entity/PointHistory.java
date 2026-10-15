@@ -67,6 +67,13 @@ public class PointHistory extends BaseTimeEntity {
         return record(member, type, amount, balanceAfter, null);
     }
 
+    // 거래와 관련된 변동(지급·반환)은 거래를 함께 남긴다.
+    public static PointHistory recordForTrade(Member member, PointHistoryType type, BigDecimal amount, PointBalance balanceAfter, Long tradeId) {
+        PointHistory history = record(member, type, amount, balanceAfter, null);
+        history.tradeId = tradeId;
+        return history;
+    }
+
     // 입찰과 관련된 변동(예약·해제)은 경매를 함께 남긴다.
     public static PointHistory record(Member member, PointHistoryType type, BigDecimal amount, PointBalance balanceAfter, Auction auction) {
         PointHistory history = new PointHistory();

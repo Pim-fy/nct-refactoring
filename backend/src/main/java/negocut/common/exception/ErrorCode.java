@@ -35,6 +35,12 @@ public enum ErrorCode {
     AUCTION_NOT_FOUND(HttpStatus.NOT_FOUND, "경매를 찾을 수 없습니다."),
     AUCTION_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "상품 이미지를 한 장 이상 올려 주세요."),
 
+    // 거래
+    TRADE_NOT_FOUND(HttpStatus.NOT_FOUND, "거래를 찾을 수 없습니다."),
+    TRADE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "이 거래에 대한 권한이 없습니다."),
+    TRADE_STATUS_INVALID(HttpStatus.CONFLICT, "현재 거래 상태에서는 할 수 없는 처리입니다."),
+    TRADE_ALREADY_PROCESSED(HttpStatus.CONFLICT, "이미 처리된 거래입니다."),
+
     // 입찰
     AUCTION_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 경매가 아닙니다."),
     BID_SELF_AUCTION_NOT_ALLOWED(HttpStatus.FORBIDDEN, "본인이 등록한 경매에는 입찰할 수 없습니다."),

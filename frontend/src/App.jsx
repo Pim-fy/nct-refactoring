@@ -9,9 +9,11 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import MyAuctionsPage from './pages/MyAuctionsPage';
 import MyBidsPage from './pages/MyBidsPage';
+import MyTradesPage from './pages/MyTradesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import PointPage from './pages/PointPage';
 import SignupPage from './pages/SignupPage';
+import TradeDetailPage from './pages/TradeDetailPage';
 
 // 화면 경로는 화면 설계서 2장을 따른다.
 // 회원 전용 화면은 앞으로 <Route element={<ProtectedRoute />}> 안에, 관리자 화면은 role="ADMIN"을 준 ProtectedRoute 안에 넣는다.
@@ -27,6 +29,8 @@ export default function App() {
           <Route path="/auctions/new" element={<AuctionRegisterPage />} />
           <Route path="/my/auctions" element={<MyAuctionsPage />} />
           <Route path="/my/bids" element={<MyBidsPage />} />
+          <Route path="/my/trades" element={<MyTradesPage />} />
+          <Route path="/my/trades/:id" element={<TradeDetailPage />} />
           <Route path="/my/points" element={<PointPage />} />
         </Route>
         <Route element={<ProtectedRoute role="ADMIN" />}>

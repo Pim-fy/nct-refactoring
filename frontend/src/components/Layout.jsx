@@ -45,6 +45,9 @@ export default function Layout() {
                     <Link to="/my/bids" className="btn btn-sm btn-ghost text-neutral-content">
                       내 입찰
                     </Link>
+                    <Link to="/my/trades" className="btn btn-sm btn-ghost text-neutral-content">
+                      내 거래
+                    </Link>
                     <Link to="/my/points" className="btn btn-sm btn-ghost text-neutral-content">
                       포인트
                     </Link>

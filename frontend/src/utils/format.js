@@ -68,3 +68,24 @@ export function formatPoint(value) {
   }
   return `${Number(value).toLocaleString('ko-KR')} P`;
 }
+
+// 거래 상태 코드를 화면 문구로 바꾼다. (기능 명세서 2-2)
+export const TRADE_STATUS_LABELS = {
+  READY: '준비',
+  IN_PROGRESS: '진행',
+  CONFIRMED: '구매 확정',
+  COMPLETED: '완료',
+  CANCELED: '취소',
+  DISPUTED: '분쟁',
+};
+
+export const TRADE_STATUS_BADGES = {
+  READY: 'badge-ghost',
+  IN_PROGRESS: 'badge-primary',
+  CONFIRMED: 'badge-info',
+  COMPLETED: 'badge-success',
+  CANCELED: 'badge-neutral',
+  DISPUTED: 'badge-error',
+};
+
+export const TRADE_ROLE_LABELS = { SELLER: '판매', BUYER: '구매' };

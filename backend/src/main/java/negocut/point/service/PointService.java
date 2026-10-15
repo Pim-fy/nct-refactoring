@@ -64,6 +64,16 @@ public class PointService {
         pointHistoryRepository.save(PointHistory.record(member, PointHistoryType.RESERVE, amount, balance, auction));
     }
 
+    // 구매 확정으로 거래 대금을 지급한다. 낙찰자의 예약 포인트가 보유 포인트와 함께 나가고 판매자의 보유 포인트가 늘어난다.
+    // 낙찰자·판매자 각각에 지급 이력을 남기고 거래를 연결한다. 방향은 이력의 회원과 거래의 역할로 판단한다.
+    // 호출하는 쪽이 두 잔액 행을 회원 번호 순서로 잠근 트랜잭션 안에서 불러야 한다.
+    public void payout(PointBalance buyerBalance, Member buyer, PointBalance sellerBalance, Member seller, BigDecimal amount, Long tradeId) {
+        buyerBalance.payOut(amount);
+        pointHistoryRepository.save(PointHistory.recordForTrade(buyer, PointHistoryType.PAYOUT, amount, buyerBalance, tradeId));
+        sellerBalance.receive(amount);
+        pointHistoryRepository.save(PointHistory.recordForTrade(seller, PointHistoryType.PAYOUT, amount, sellerBalance, tradeId));
+    }
+
     // 더 높은 입찰에 밀린 입찰자의 예약을 푼다. 호출하는 쪽이 잔액 행을 잠근 트랜잭션 안에서 불러야 한다.
     public void release(PointBalance balance, Member member, BigDecimal amount, Auction auction) {
         balance.release(amount);

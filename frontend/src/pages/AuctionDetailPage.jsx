@@ -98,11 +98,16 @@ function SoldNotice({ result, isSeller }) {
       </dl>
       {result.isWinner && (
         <p className="mt-3">
-          낙찰 금액은 포인트로 예약되어 있습니다. 거래 단계에서 배송지를 입력하면 판매자가 택배로 발송합니다. (거래 화면은 준비 중입니다.)
+          낙찰 금액은 포인트로 예약되어 있습니다. 내 거래에서 배송지를 입력하면 판매자가 택배로 발송합니다.
         </p>
       )}
       {isSeller && (
-        <p className="mt-3">낙찰자가 배송지를 입력하면 낙찰 후 5일 안에 택배로 발송해 주세요. 배송비는 판매자가 부담합니다. (거래 화면은 준비 중입니다.)</p>
+        <p className="mt-3">낙찰자가 배송지를 입력하면 낙찰 후 5일 안에 택배로 발송해 주세요. 배송비는 판매자가 부담합니다.</p>
+      )}
+      {(result.isWinner || isSeller) && (
+        <Link to="/my/trades" className="btn btn-primary btn-sm mt-3">
+          내 거래 보기
+        </Link>
       )}
     </div>
   );

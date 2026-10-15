@@ -62,6 +62,20 @@ public class PointBalance extends BaseTimeEntity {
         this.reservedPoint = this.reservedPoint.add(amount);
     }
 
+    // 거래 대금으로 지급한다(낙찰자 쪽). 예약해 둔 포인트가 보유 포인트에서 함께 나간다.
+    public void payOut(BigDecimal amount) {
+        if (amount.compareTo(reservedPoint) > 0 || amount.compareTo(totalPoint) > 0) {
+            throw new IllegalStateException("예약·보유 포인트보다 많이 지급할 수 없습니다. reserved=" + reservedPoint + ", total=" + totalPoint + ", amount=" + amount);
+        }
+        this.reservedPoint = this.reservedPoint.subtract(amount);
+        this.totalPoint = this.totalPoint.subtract(amount);
+    }
+
+    // 거래 대금을 받는다(판매자 쪽). 보유 한도(1,000만)는 충전에만 적용하고 지급에는 적용하지 않는다. (기능 명세서 3-5)
+    public void receive(BigDecimal amount) {
+        this.totalPoint = this.totalPoint.add(amount);
+    }
+
     // 예약을 풀어 사용 가능 포인트로 되돌린다. 예약보다 많이 풀 수는 없다.
     public void release(BigDecimal amount) {
         if (amount.compareTo(reservedPoint) > 0) {
