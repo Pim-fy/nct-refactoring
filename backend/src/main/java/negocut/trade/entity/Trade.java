@@ -35,6 +35,8 @@ import negocut.member.entity.Member;
         uniqueConstraints = @UniqueConstraint(name = "uk_trade_auction_result", columnNames = "auction_result_id"))
 public class Trade extends BaseTimeEntity {
 
+    private static final int CONFIRM_DUE_DAYS = 10;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -80,6 +82,31 @@ public class Trade extends BaseTimeEntity {
     private boolean unfulfilled;
 
     private LocalDateTime unfulfilledAt;
+
+    // 판매자가 발송을 등록했다. 진행 상태가 되고 구매 확정 기한은 발송 후 10일이다.
+    public void startShipping(LocalDateTime shippedAt) {
+        this.tradeStatus = TradeStatus.IN_PROGRESS;
+        this.confirmDueAt = shippedAt.plusDays(CONFIRM_DUE_DAYS);
+    }
+
+    // 구매 확정으로 저장한다. 자동 구매 확정이면 그 사실도 남긴다.
+    public void confirm(LocalDateTime confirmedAt, boolean auto) {
+        this.tradeStatus = TradeStatus.CONFIRMED;
+        this.confirmedAt = confirmedAt;
+        this.autoConfirmed = auto;
+    }
+
+    // 포인트를 지급하고 거래를 끝낸다.
+    public void complete(LocalDateTime completedAt) {
+        this.tradeStatus = TradeStatus.COMPLETED;
+        this.completedAt = completedAt;
+    }
+
+    // 발송 기한을 넘겼다는 표시만 남기고 거래 상태는 바꾸지 않는다.
+    public void markUnfulfilled(LocalDateTime now) {
+        this.unfulfilled = true;
+        this.unfulfilledAt = now;
+    }
 
     public static Trade open(AuctionResult result, Member seller, Member buyer, LocalDateTime shipDueAt) {
         Trade trade = new Trade();
