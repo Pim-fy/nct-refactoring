@@ -6,6 +6,7 @@ import { confirmPurchase, fetchTrade } from '../api/tradeApi';
 import DeliveryForm from '../components/DeliveryForm';
 import Modal from '../components/Modal';
 import ShipmentForm from '../components/ShipmentForm';
+import TradeCancelPanel from '../components/TradeCancelPanel';
 import { useToast } from '../hooks/useToast';
 import { formatDateTime, formatPoint, formatWon, TRADE_ROLE_LABELS, TRADE_STATUS_BADGES, TRADE_STATUS_LABELS } from '../utils/format';
 
@@ -97,6 +98,9 @@ function ScheduleNotice({ trade }) {
   }
   if (tradeStatus === 'CONFIRMED') {
     return <p>구매가 확정되었습니다. 포인트 지급 처리가 아직 끝나지 않았으며 잠시 후 자동으로 이어서 처리됩니다.</p>;
+  }
+  if (tradeStatus === 'CANCELED') {
+    return <p>거래가 취소되었습니다. ({formatDateTime(schedule.completedAt)}) 낙찰자의 예약 포인트가 반환되었습니다.</p>;
   }
   if (tradeStatus === 'COMPLETED') {
     return (
@@ -221,6 +225,8 @@ function TradeDetailView({ trade, onChanged }) {
           </button>
         </div>
       )}
+
+      <TradeCancelPanel trade={trade} onChanged={onChanged} />
 
       <Modal open={confirming} title="구매를 확정할까요?" onClose={() => setConfirming(false)}>
         <p className="mb-4 rounded bg-warning/20 p-3 text-sm">
