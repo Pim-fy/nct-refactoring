@@ -18,11 +18,13 @@ import negocut.common.response.ApiResponse;
 import negocut.common.response.PageResult;
 import negocut.trade.dto.CancelRequestBody;
 import negocut.trade.dto.DeliveryRequest;
+import negocut.trade.dto.DisputeRequestBody;
 import negocut.trade.dto.ShipmentRequest;
 import negocut.trade.dto.TradeActionResponses;
 import negocut.trade.dto.TradeDetailResponse;
 import negocut.trade.dto.TradeSummaryResponse;
 import negocut.trade.service.TradeCancelService;
+import negocut.trade.service.TradeDisputeService;
 import negocut.trade.service.TradeService;
 
 // 거래 조회와 상태 변경 (기능 명세서 3-8, API 명세서 5장)
@@ -34,6 +36,7 @@ public class TradeController {
 
     private final TradeService tradeService;
     private final TradeCancelService tradeCancelService;
+    private final TradeDisputeService tradeDisputeService;
 
     @GetMapping("/api/members/me/trades")
     public ApiResponse<PageResult<TradeSummaryResponse>> myTrades(
@@ -92,6 +95,17 @@ public class TradeController {
     public ApiResponse<TradeActionResponses.CancelRejected> rejectCancel(
             @AuthenticationPrincipal AuthMember member, @PathVariable Long tradeId, @PathVariable Long requestId) {
         return ApiResponse.success(tradeCancelService.reject(member.memberId(), tradeId, requestId));
+    }
+
+    // 처리 중인 분쟁 1건과 접수 3회 제한을 서버가 확인하므로 되풀이해도 중복되지 않는다. 판정 뒤의 재접수에 이전 응답이 재생되지 않게 한다.
+    @SkipIdempotency
+    @AllowTradeRestricted
+    @PostMapping("/api/trades/{tradeId}/disputes")
+    public ApiResponse<TradeActionResponses.DisputeOpened> openDispute(
+            @AuthenticationPrincipal AuthMember member,
+            @PathVariable Long tradeId,
+            @Valid @RequestBody DisputeRequestBody request) {
+        return ApiResponse.success(tradeDisputeService.open(member.memberId(), tradeId, request.reason()));
     }
 
     @AllowTradeRestricted

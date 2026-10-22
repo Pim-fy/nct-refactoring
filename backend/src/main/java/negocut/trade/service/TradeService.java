@@ -30,12 +30,13 @@ import negocut.trade.entity.TradeCancelRequest;
 import negocut.trade.entity.TradeDelivery;
 import negocut.trade.entity.TradeRole;
 import negocut.trade.entity.TradeStatus;
+import negocut.trade.repository.DisputeRepository;
 import negocut.trade.repository.TradeCancelRequestRepository;
 import negocut.trade.repository.TradeDeliveryRepository;
 import negocut.trade.repository.TradeRepository;
 import negocut.trade.repository.TradeSearchRepository;
 
-// 거래 조회와 배송지 입력, 발송 등록, 구매 확정. (기능 명세서 3-8)
+// 거래 조회와 배송지 입력, 발송 등록, 구매 확정. (기능 명세서 3-8) 분쟁 접수는 TradeDisputeService가 한다.
 // 거래를 당사자(판매자·낙찰자) 밖에서 열거나 바꿀 수 없다. 상태를 바꾸는 처리는 거래 행을 먼저 잠그고 상태를 다시 확인한다.
 @Slf4j
 @Service
@@ -51,6 +52,7 @@ public class TradeService {
     private final ProductImageRepository productImageRepository;
     private final TradeConfirmProcessor confirmProcessor;
     private final TradeCancelRequestRepository cancelRequestRepository;
+    private final DisputeRepository disputeRepository;
 
     // 내 거래 목록. role(SELLER·BUYER)과 status는 생략할 수 있다. 최근 거래가 먼저다.
     @Transactional(readOnly = true)
@@ -76,7 +78,8 @@ public class TradeService {
         TradeRole role = requireParty(trade, memberId);
         TradeDelivery delivery = deliveryRepository.findByTradeId(tradeId).orElse(null);
         Long productId = trade.getAuctionResult().getAuction().getProduct().getId();
-        return TradeDetailResponse.of(trade, role, delivery, cancelRequestRepository.findProcessingByTradeId(tradeId).orElse(null),
+        return TradeDetailResponse.of(trade, role, memberId, delivery, cancelRequestRepository.findProcessingByTradeId(tradeId).orElse(null),
+                disputeRepository.findLatestByTradeId(tradeId).orElse(null),
                 thumbnails(List.of(productId)).get(productId), availableActions(trade, role, memberId, delivery != null));
     }
 
@@ -158,6 +161,10 @@ public class TradeService {
             } else if (!processing.getRequester().getId().equals(memberId)) {
                 actions.add(TradeAction.ACCEPT_CANCEL);
                 actions.add(TradeAction.REJECT_CANCEL);
+            }
+            // 준비·진행 상태에는 처리 중인 분쟁이 없으므로 접수 횟수만 본다.
+            if (disputeRepository.countByTradeIdAndReporterId(trade.getId(), memberId) < TradeDisputeService.MAX_DISPUTES_PER_PARTY) {
+                actions.add(TradeAction.OPEN_DISPUTE);
             }
         }
         return actions;

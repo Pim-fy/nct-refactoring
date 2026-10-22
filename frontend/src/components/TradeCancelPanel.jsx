@@ -22,7 +22,7 @@ export default function TradeCancelPanel({ trade, onChanged }) {
   const canRespond = actions.includes('ACCEPT_CANCEL') && actions.includes('REJECT_CANCEL');
   const mineWaiting = cancelRequest && cancelRequest.requesterRole === myRole;
   // 앞뒤 공백(NBSP·전각 공백 포함)은 서버와 같이 지우고 센다.
-  const trimmedReason = reason.replace(/^[\p{Z}\s]+|[\p{Z}\s]+$/gu, '');
+  const trimmedReason = reason.replace(/^[\p{Z}\s\u200B-\u200D\u2060\uFEFF]+|[\p{Z}\s\u200B-\u200D\u2060\uFEFF]+$/gu, '');
   const reasonProblem =
     trimmedReason === '' ? '취소 사유를 입력해 주세요.' : trimmedReason.length > MAX_REASON ? `취소 사유는 ${MAX_REASON}자 이하로 입력해 주세요.` : null;
   // 준비·진행 상태인데 요청할 수도 응답할 수도 없고 처리 중인 요청도 없으면, 이 거래에서 낼 수 있는 요청 횟수를 모두 쓴 것이다.
