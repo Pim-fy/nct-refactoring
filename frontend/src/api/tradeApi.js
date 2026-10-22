@@ -47,3 +47,9 @@ export async function acceptCancel(tradeId, requestId) {
 export async function rejectCancel(tradeId, requestId) {
   return unwrap(await api.post(`/trades/${tradeId}/cancel-requests/${requestId}/reject`));
 }
+
+// 분쟁 접수. 판매자·낙찰자 누구나 준비·진행 상태에서 사유(500자 이하)와 함께 접수한다. 처리 중인 분쟁이 있거나 3회를 넘으면 409다.
+// 응답: { disputeId, tradeId, tradeStatus } — tradeStatus는 DISPUTED다.
+export async function openDispute(tradeId, reason) {
+  return unwrap(await api.post(`/trades/${tradeId}/disputes`, { reason }));
+}

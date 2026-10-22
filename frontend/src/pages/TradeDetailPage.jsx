@@ -7,6 +7,7 @@ import DeliveryForm from '../components/DeliveryForm';
 import Modal from '../components/Modal';
 import ShipmentForm from '../components/ShipmentForm';
 import TradeCancelPanel from '../components/TradeCancelPanel';
+import TradeDisputePanel from '../components/TradeDisputePanel';
 import { useToast } from '../hooks/useToast';
 import { formatDateTime, formatPoint, formatWon, TRADE_ROLE_LABELS, TRADE_STATUS_BADGES, TRADE_STATUS_LABELS } from '../utils/format';
 
@@ -89,7 +90,11 @@ function ScheduleNotice({ trade }) {
     return (
       <>
         <p>발송 기한 {formatDateTime(schedule.shipDueAt)}까지</p>
-        {schedule.isUnfulfilled && <p className="mt-1 font-medium text-warning">발송 기한이 지났습니다.</p>}
+        {schedule.isUnfulfilled && (
+          <p className="mt-1 font-medium text-warning">
+            발송 기한이 지났습니다.{trade.availableActions.includes('OPEN_DISPUTE') && ' 분쟁을 접수할 수 있습니다.'}
+          </p>
+        )}
       </>
     );
   }
@@ -98,6 +103,9 @@ function ScheduleNotice({ trade }) {
   }
   if (tradeStatus === 'CONFIRMED') {
     return <p>구매가 확정되었습니다. 포인트 지급 처리가 아직 끝나지 않았으며 잠시 후 자동으로 이어서 처리됩니다.</p>;
+  }
+  if (tradeStatus === 'DISPUTED') {
+    return <p>분쟁이 접수되어 관리자 판정을 기다리고 있습니다. 판정이 나올 때까지 거래 상태를 바꿀 수 없고 자동 구매 확정도 진행되지 않습니다.</p>;
   }
   if (tradeStatus === 'CANCELED') {
     return <p>거래가 취소되었습니다. ({formatDateTime(schedule.completedAt)}) 낙찰자의 예약 포인트가 반환되었습니다.</p>;
@@ -227,6 +235,7 @@ function TradeDetailView({ trade, onChanged }) {
       )}
 
       <TradeCancelPanel trade={trade} onChanged={onChanged} />
+      <TradeDisputePanel trade={trade} onChanged={onChanged} />
 
       <Modal open={confirming} title="구매를 확정할까요?" onClose={() => setConfirming(false)}>
         <p className="mb-4 rounded bg-warning/20 p-3 text-sm">
