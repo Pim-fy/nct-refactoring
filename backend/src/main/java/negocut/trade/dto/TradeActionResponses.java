@@ -35,6 +35,10 @@ public final class TradeActionResponses {
     public record CancelRejected(Long tradeId, TradeStatus tradeStatus, CancelRequestStatus requestStatus) {
     }
 
+    // POST /api/trades/{id}/disputes
+    public record DisputeOpened(Long disputeId, Long tradeId, TradeStatus tradeStatus) {
+    }
+
     // POST /api/trades/{id}/confirm. 정상 처리되면 완료이고, 지급이 실패해 구매 확정에 멈췄으면 그 상태와 completedAt null이 돌아온다.
     public record PurchaseConfirmed(Long tradeId, TradeStatus tradeStatus, OffsetDateTime confirmedAt,
             OffsetDateTime completedAt, List<TradeAction> availableActions) {

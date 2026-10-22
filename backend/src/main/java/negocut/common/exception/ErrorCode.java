@@ -44,6 +44,8 @@ public enum ErrorCode {
     TRADE_CANCEL_REQUEST_CLOSED(HttpStatus.CONFLICT, "이미 닫힌 취소 요청입니다."),
     TRADE_CANCEL_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "취소 요청을 찾을 수 없습니다."),
     TRADE_CANCEL_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "이 거래에서 낼 수 있는 취소 요청 횟수(3회)를 넘었습니다."),
+    DISPUTE_ALREADY_OPEN(HttpStatus.CONFLICT, "처리 중인 분쟁이 있습니다."),
+    DISPUTE_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "이 거래에서 접수할 수 있는 분쟁 횟수(3회)를 넘었습니다."),
 
     // 입찰
     AUCTION_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 경매가 아닙니다."),

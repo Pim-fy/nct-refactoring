@@ -225,7 +225,7 @@ class TradeCancelTest {
         postJson(cookieOf(seller), path, "{\"reason\":\"사유 3\"}").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("TRADE_CANCEL_ALREADY_REQUESTED"));
         // NBSP·전각 공백만 있는 사유와 앞뒤 공백을 지운 뒤 500자를 넘는 사유도 거부한다.
-        for (String bad : new String[] {"{}", "{\"reason\":\"\"}", "{\"reason\":\"   \"}", "{\"reason\":\"\\u00a0\\u3000 \"}",
+        for (String bad : new String[] {"{}", "{\"reason\":\"\"}", "{\"reason\":\"   \"}", "{\"reason\":\"\\u00a0\\u3000 \"}", "{\"reason\":\"\\u200b\\ufeff\\u2060\"}",
                 "{\"reason\":\"" + "가".repeat(501) + "\"}", "{\"reason\":\"\\u00a0" + "가".repeat(501) + "\"}"}) {
             postJson(cookieOf(seller), path, bad).andExpect(status().isBadRequest());
         }

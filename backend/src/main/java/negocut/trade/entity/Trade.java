@@ -102,6 +102,11 @@ public class Trade extends BaseTimeEntity {
         this.completedAt = canceledAt;
     }
 
+    // 분쟁이 접수되어 관리자 판정을 기다린다. 접수 직전 상태는 분쟁이 저장한다.
+    public void openDispute() {
+        this.tradeStatus = TradeStatus.DISPUTED;
+    }
+
     // 포인트를 지급하고 거래를 끝낸다.
     public void complete(LocalDateTime completedAt) {
         this.tradeStatus = TradeStatus.COMPLETED;

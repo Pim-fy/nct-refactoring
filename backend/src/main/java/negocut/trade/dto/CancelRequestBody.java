@@ -9,9 +9,9 @@ public record CancelRequestBody(
         @Size(max = 500, message = "취소 사유는 500자 이하로 입력해 주세요.")
         String reason) {
 
-    private static final String EDGE_SPACES = "^[\\p{Z}\\s]+|[\\p{Z}\\s]+$";
+    private static final String EDGE_SPACES = "^[\\p{Z}\\s\\u200B-\\u200D\\u2060\\uFEFF]+|[\\p{Z}\\s\\u200B-\\u200D\\u2060\\uFEFF]+$";
 
-    // 앞뒤 공백은 NBSP·전각 공백 같은 유니코드 공백도 지운다. (String.trim은 NBSP를 남긴다.)
+    // 앞뒤 공백은 NBSP·전각 공백 같은 유니코드 공백과 제로폭 공백(ZWSP·BOM)도 지운다. (String.trim은 NBSP를 남긴다.)
     public CancelRequestBody {
         reason = reason == null ? null : reason.replaceAll(EDGE_SPACES, "");
     }
