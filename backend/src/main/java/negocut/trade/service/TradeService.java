@@ -26,9 +26,11 @@ import negocut.trade.dto.TradeDetailResponse;
 import negocut.trade.dto.TradeSummaryResponse;
 import negocut.trade.entity.Trade;
 import negocut.trade.entity.TradeAction;
+import negocut.trade.entity.TradeCancelRequest;
 import negocut.trade.entity.TradeDelivery;
 import negocut.trade.entity.TradeRole;
 import negocut.trade.entity.TradeStatus;
+import negocut.trade.repository.TradeCancelRequestRepository;
 import negocut.trade.repository.TradeDeliveryRepository;
 import negocut.trade.repository.TradeRepository;
 import negocut.trade.repository.TradeSearchRepository;
@@ -48,6 +50,7 @@ public class TradeService {
     private final TradeSearchRepository tradeSearchRepository;
     private final ProductImageRepository productImageRepository;
     private final TradeConfirmProcessor confirmProcessor;
+    private final TradeCancelRequestRepository cancelRequestRepository;
 
     // 내 거래 목록. role(SELLER·BUYER)과 status는 생략할 수 있다. 최근 거래가 먼저다.
     @Transactional(readOnly = true)
@@ -73,8 +76,8 @@ public class TradeService {
         TradeRole role = requireParty(trade, memberId);
         TradeDelivery delivery = deliveryRepository.findByTradeId(tradeId).orElse(null);
         Long productId = trade.getAuctionResult().getAuction().getProduct().getId();
-        return TradeDetailResponse.of(trade, role, delivery, thumbnails(List.of(productId)).get(productId),
-                availableActions(trade, role, delivery != null));
+        return TradeDetailResponse.of(trade, role, delivery, cancelRequestRepository.findProcessingByTradeId(tradeId).orElse(null),
+                thumbnails(List.of(productId)).get(productId), availableActions(trade, role, memberId, delivery != null));
     }
 
     // 낙찰자가 배송지를 입력한다. 준비 상태에서만 할 수 있고, 발송이 등록되기 전까지는 다시 입력해 고칠 수 있다. (API-3)
@@ -95,7 +98,7 @@ public class TradeService {
             delivery.change(request.receiverName(), request.receiverPhone(), request.zipCode(),
                     request.address(), blankToNull(request.addressDetail()), blankToNull(request.deliveryMessage()));
         }
-        return new TradeActionResponses.DeliverySaved(tradeId, trade.getTradeStatus(), availableActions(trade, role, true));
+        return new TradeActionResponses.DeliverySaved(tradeId, trade.getTradeStatus(), availableActions(trade, role, memberId, true));
     }
 
     // 판매자가 발송을 등록한다. 준비 상태이고 배송지가 입력되어 있어야 하며, 등록하면 진행 상태가 되고 구매 확정 기한(발송 후 10일)이 정해진다.
@@ -115,7 +118,7 @@ public class TradeService {
         trade.startShipping(now);
         return new TradeActionResponses.ShipmentRegistered(tradeId, trade.getTradeStatus(),
                 TradeSummaryResponse.toOffset(now), TradeSummaryResponse.toOffset(trade.getConfirmDueAt()),
-                availableActions(trade, role, true));
+                availableActions(trade, role, memberId, true));
     }
 
     // 낙찰자가 구매를 확정한다. 구매 확정을 먼저 저장하고(커밋), 이어서 포인트 지급과 완료 전환을 하나의 트랜잭션으로 처리한다.
@@ -132,9 +135,9 @@ public class TradeService {
                 TradeSummaryResponse.toOffset(trade.getConfirmedAt()), TradeSummaryResponse.toOffset(trade.getCompletedAt()), List.of());
     }
 
-    // 보는 사람이 지금 할 수 있는 행동. 역할, 거래 상태, 배송지 입력 여부로 정한다. (API 명세서 5-1)
+    // 보는 사람이 지금 할 수 있는 행동. 역할, 거래 상태, 배송지 입력 여부, 처리 중인 취소 요청으로 정한다. (API 명세서 5-1)
     // 서버는 실제 요청이 들어올 때 같은 조건을 다시 검증한다.
-    static List<TradeAction> availableActions(Trade trade, TradeRole role, boolean hasDelivery) {
+    List<TradeAction> availableActions(Trade trade, TradeRole role, Long memberId, boolean hasDelivery) {
         List<TradeAction> actions = new ArrayList<>();
         if (role == TradeRole.BUYER && trade.getTradeStatus() == TradeStatus.READY) {
             actions.add(TradeAction.INPUT_DELIVERY);
@@ -144,6 +147,18 @@ public class TradeService {
         }
         if (role == TradeRole.BUYER && trade.getTradeStatus() == TradeStatus.IN_PROGRESS) {
             actions.add(TradeAction.CONFIRM_PURCHASE);
+        }
+        // 취소는 준비·진행 상태에서만 요청하고 응답한다.
+        if (trade.getTradeStatus() == TradeStatus.READY || trade.getTradeStatus() == TradeStatus.IN_PROGRESS) {
+            TradeCancelRequest processing = cancelRequestRepository.findProcessingByTradeId(trade.getId()).orElse(null);
+            if (processing == null) {
+                if (cancelRequestRepository.countByTradeIdAndRequesterId(trade.getId(), memberId) < TradeCancelService.MAX_REQUESTS_PER_PARTY) {
+                    actions.add(TradeAction.REQUEST_CANCEL);
+                }
+            } else if (!processing.getRequester().getId().equals(memberId)) {
+                actions.add(TradeAction.ACCEPT_CANCEL);
+                actions.add(TradeAction.REJECT_CANCEL);
+            }
         }
         return actions;
     }

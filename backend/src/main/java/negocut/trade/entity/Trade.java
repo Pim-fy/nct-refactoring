@@ -96,6 +96,12 @@ public class Trade extends BaseTimeEntity {
         this.autoConfirmed = auto;
     }
 
+    // 양쪽이 합의해 거래를 취소한다. 취소는 최종 상태다.
+    public void cancel(LocalDateTime canceledAt) {
+        this.tradeStatus = TradeStatus.CANCELED;
+        this.completedAt = canceledAt;
+    }
+
     // 포인트를 지급하고 거래를 끝낸다.
     public void complete(LocalDateTime completedAt) {
         this.tradeStatus = TradeStatus.COMPLETED;

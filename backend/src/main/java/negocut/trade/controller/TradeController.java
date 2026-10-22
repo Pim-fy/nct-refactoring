@@ -13,13 +13,16 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import negocut.auth.security.AllowTradeRestricted;
 import negocut.auth.security.AuthMember;
+import negocut.common.idempotency.SkipIdempotency;
 import negocut.common.response.ApiResponse;
 import negocut.common.response.PageResult;
+import negocut.trade.dto.CancelRequestBody;
 import negocut.trade.dto.DeliveryRequest;
 import negocut.trade.dto.ShipmentRequest;
 import negocut.trade.dto.TradeActionResponses;
 import negocut.trade.dto.TradeDetailResponse;
 import negocut.trade.dto.TradeSummaryResponse;
+import negocut.trade.service.TradeCancelService;
 import negocut.trade.service.TradeService;
 
 // 거래 조회와 상태 변경 (기능 명세서 3-8, API 명세서 5장)
@@ -30,6 +33,7 @@ import negocut.trade.service.TradeService;
 public class TradeController {
 
     private final TradeService tradeService;
+    private final TradeCancelService tradeCancelService;
 
     @GetMapping("/api/members/me/trades")
     public ApiResponse<PageResult<TradeSummaryResponse>> myTrades(
@@ -62,6 +66,32 @@ public class TradeController {
             @PathVariable Long tradeId,
             @Valid @RequestBody ShipmentRequest request) {
         return ApiResponse.success(tradeService.registerShipment(member.memberId(), tradeId, request));
+    }
+
+    // 같은 사유로 다시 요청해도 새로 판정한다. 처리 중인 요청 1건과 요청 3회 제한을 서버가 확인하므로 되풀이해도 중복되지 않고,
+    // 거절된 뒤의 재요청에 이전 요청의 성공 응답이 재생되는 것을 막는다.
+    @SkipIdempotency
+    @AllowTradeRestricted
+    @PostMapping("/api/trades/{tradeId}/cancel-requests")
+    public ApiResponse<TradeActionResponses.CancelRequested> requestCancel(
+            @AuthenticationPrincipal AuthMember member,
+            @PathVariable Long tradeId,
+            @Valid @RequestBody CancelRequestBody request) {
+        return ApiResponse.success(tradeCancelService.request(member.memberId(), tradeId, request.reason()));
+    }
+
+    @AllowTradeRestricted
+    @PostMapping("/api/trades/{tradeId}/cancel-requests/{requestId}/accept")
+    public ApiResponse<TradeActionResponses.CancelAccepted> acceptCancel(
+            @AuthenticationPrincipal AuthMember member, @PathVariable Long tradeId, @PathVariable Long requestId) {
+        return ApiResponse.success(tradeCancelService.accept(member.memberId(), tradeId, requestId));
+    }
+
+    @AllowTradeRestricted
+    @PostMapping("/api/trades/{tradeId}/cancel-requests/{requestId}/reject")
+    public ApiResponse<TradeActionResponses.CancelRejected> rejectCancel(
+            @AuthenticationPrincipal AuthMember member, @PathVariable Long tradeId, @PathVariable Long requestId) {
+        return ApiResponse.success(tradeCancelService.reject(member.memberId(), tradeId, requestId));
     }
 
     @AllowTradeRestricted

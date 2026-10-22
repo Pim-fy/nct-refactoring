@@ -182,12 +182,14 @@ class TradeFlowTest {
                 .andExpect(jsonPath("$.data.delivery").value((Object) null))
                 .andExpect(jsonPath("$.data.cancelRequest").value((Object) null))
                 .andExpect(jsonPath("$.data.availableActions[0]").value("INPUT_DELIVERY"))
-                .andExpect(jsonPath("$.data.availableActions.length()").value(1));
-        // 판매자는 배송지 입력 전에는 할 수 있는 행동이 없다.
+                .andExpect(jsonPath("$.data.availableActions[1]").value("REQUEST_CANCEL"))
+                .andExpect(jsonPath("$.data.availableActions.length()").value(2));
+        // 판매자는 배송지 입력 전에는 취소 요청 말고는 할 수 있는 행동이 없다.
         mockMvc.perform(get(path).cookie(cookieOf(seller)))
                 .andExpect(jsonPath("$.data.myRole").value("SELLER"))
                 .andExpect(jsonPath("$.data.counterparty.maskedNickname").value(buyer.getNickname().substring(0, 2) + "***"))
-                .andExpect(jsonPath("$.data.availableActions.length()").value(0));
+                .andExpect(jsonPath("$.data.availableActions[0]").value("REQUEST_CANCEL"))
+                .andExpect(jsonPath("$.data.availableActions.length()").value(1));
         // 당사자가 아니면 403, 없는 거래는 404, 비로그인 401, 관리자 403
         mockMvc.perform(get(path).cookie(cookieOf(newMember()))).andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("TRADE_ACCESS_DENIED"));
@@ -314,7 +316,8 @@ class TradeFlowTest {
                 .andExpect(jsonPath("$.data.tradeStatus").value("IN_PROGRESS"))
                 .andExpect(jsonPath("$.data.shippedAt").value(org.hamcrest.Matchers.endsWith("+09:00")))
                 .andExpect(jsonPath("$.data.confirmDueAt").exists())
-                .andExpect(jsonPath("$.data.availableActions.length()").value(0));
+                .andExpect(jsonPath("$.data.availableActions[0]").value("REQUEST_CANCEL"))
+                .andExpect(jsonPath("$.data.availableActions.length()").value(1));
 
         Trade trade = reload(tradeId);
         assertThat(trade.getTradeStatus()).isEqualTo(TradeStatus.IN_PROGRESS);

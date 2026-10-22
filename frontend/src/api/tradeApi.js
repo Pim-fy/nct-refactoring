@@ -30,3 +30,20 @@ export async function registerShipment(tradeId, payload) {
 export async function confirmPurchase(tradeId) {
   return unwrap(await api.post(`/trades/${tradeId}/confirm`));
 }
+
+// 거래 취소 요청. 판매자·낙찰자 누구나 준비·진행 상태에서 사유(500자 이하)와 함께 요청한다. 처리 중인 요청이 있거나 3회를 넘으면 409다.
+// 응답: { requestId, requestStatus }
+export async function requestCancel(tradeId, reason) {
+  return unwrap(await api.post(`/trades/${tradeId}/cancel-requests`, { reason }));
+}
+
+// 상대방이 요청한 취소를 수락한다. 거래가 CANCELED가 되고 낙찰자의 예약 포인트가 반환된다.
+// 응답: { tradeId, tradeStatus, requestStatus, point } — point는 낙찰자에게만 있고 판매자 응답에서는 null이다.
+export async function acceptCancel(tradeId, requestId) {
+  return unwrap(await api.post(`/trades/${tradeId}/cancel-requests/${requestId}/accept`));
+}
+
+// 상대방이 요청한 취소를 거절한다. 응답: { tradeId, tradeStatus, requestStatus }
+export async function rejectCancel(tradeId, requestId) {
+  return unwrap(await api.post(`/trades/${tradeId}/cancel-requests/${requestId}/reject`));
+}
