@@ -134,7 +134,11 @@ export function formatRestrictionPeriod(restriction) {
 // 사유에 사람이 읽을 수 있는 글자가 하나 이상 있고 제어 문자(줄바꿈·탭 제외)가 없는지. 서버(ReasonText)와 같은 규칙이다.
 // 공백·제어·서식 문자, 결합 문자(변형 선택자 등), 한글 채움 문자류와 점자 빈칸만으로 된 사유는 글자가 없는 것으로 본다.
 export function isMeaningfulReason(text) {
-  return /[^\p{Z}\p{C}\p{M}ㅤᅟᅠﾠ⠀]/u.test(text) && !/(?![\n\r\t])\p{Cc}/u.test(text);
+  return (
+    /[^\p{Z}\p{C}\p{M}ㅤᅟᅠﾠ⠀]/u.test(text) &&
+    !/(?![\n\r\t])\p{Cc}/u.test(text) &&
+    !/[‪-‮⁦-⁩]/u.test(text) // 글자 순서를 뒤집는 방향 전환 문자
+  );
 }
 
 // 입력한 사유의 앞뒤 공백(NBSP·전각·제로폭·서식 문자와 한글 채움 문자 포함)을 서버와 같이 지운다.

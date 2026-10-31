@@ -71,13 +71,13 @@ export default function MemberReleaseModal({ member, onClose, onDone, onStale })
             required
             aria-invalid={reason !== '' && problem !== null}
             onChange={(event) => setReason(event.target.value)}
-            aria-describedby="release-reason-count"
+            aria-describedby={problem ? 'release-reason-count release-problem' : 'release-reason-count'}
           />
           <p id="release-reason-count" className={`mt-1 text-xs ${trimmedReason.length > MAX_REASON ? 'text-error' : 'text-base-content/60'}`}>
             {trimmedReason.length} / {MAX_REASON}
           </p>
           {problem && (
-            <p id="release-problem" role="status" className="mt-3 text-sm text-base-content/70">
+            <p id="release-problem" role={reason !== '' ? 'status' : undefined} className="mt-3 text-sm text-base-content/70">
               {problem}
             </p>
           )}

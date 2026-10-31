@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import jakarta.persistence.LockModeType;
 
 import negocut.auction.entity.Auction;
+import negocut.auction.entity.AuctionStatus;
 
 public interface AuctionRepository extends JpaRepository<Auction, Long> {
 
@@ -24,6 +25,14 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     // 종료 시각이 지났는데 아직 진행 중인 경매의 식별자. 종료 시각이 이른 것부터 한 번에 일정 개수만 읽는다.
     @Query("select a.id from Auction a where a.auctionStatus = negocut.auction.entity.AuctionStatus.IN_PROGRESS and a.endAt <= :now order by a.endAt, a.id")
     List<Long> findIdsToClose(LocalDateTime now, Pageable pageable);
+
+    // 관리자 경매 목록(중단 포함). 상태가 null이면 모든 상태이고, 검색어는 상품명에 포함되는지 본다. 최신 등록순이다.
+    // 검색어는 호출하는 쪽에서 %와 _를 '!'로 이스케이프해 앞뒤에 %를 붙여 넘긴다. (MySQL은 '\'를 이스케이프 문자로 쓸 수 없어 '!'를 쓴다.)
+    @Query(value = "select a from Auction a join fetch a.product p join fetch a.seller "
+            + "where (:status is null or a.auctionStatus = :status) and lower(p.name) like lower(:keyword) escape '!'",
+            countQuery = "select count(a) from Auction a join a.product p "
+            + "where (:status is null or a.auctionStatus = :status) and lower(p.name) like lower(:keyword) escape '!'")
+    Page<Auction> searchForAdmin(AuctionStatus status, String keyword, Pageable pageable);
 
     // 내가 입찰한 경매. 내가 마지막으로 입찰한 순서(최신 먼저)다. 목록에 필요한 상품과 카테고리를 함께 읽는다.
     @Query(value = "select a from Auction a join fetch a.product p join fetch p.category "

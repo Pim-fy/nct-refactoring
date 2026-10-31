@@ -9,6 +9,7 @@ import { useToast } from '../../hooks/useToast';
 import { formatDateTime, formatRestrictionPeriod, MEMBER_STATUS_BADGES, MEMBER_STATUS_LABELS } from '../../utils/format';
 
 const PAGE_SIZE = 20;
+const STATUSES = Object.keys(MEMBER_STATUS_LABELS);
 
 // 관리자 회원 관리 (기능 명세서 3-10 회원 이용 제한, 화면 설계서 관리자 회원 관리)
 // - 목록: 상태·검색어(아이디·닉네임·이메일)로 거르고, 제한 중인 회원은 현재 제한(수준·기간·사유)을 보여 준다.
@@ -19,10 +20,10 @@ export default function AdminMembersPage() {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Math.max(Number.parseInt(searchParams.get('page') ?? '0', 10) || 0, 0);
-  const status = searchParams.get('status') ?? '';
+  const rawStatus = searchParams.get('status') ?? '';
+  const status = STATUSES.includes(rawStatus) ? rawStatus : ''; // 주소창에 없는 상태가 있으면 전체로 본다.
   const keyword = searchParams.get('keyword') ?? '';
 
-  const [keywordInput, setKeywordInput] = useState(keyword);
   const [reload, setReload] = useState(0);
   const [result, setResult] = useState({ key: null, data: null, failed: false });
   const [restrictId, setRestrictId] = useState(null);
@@ -69,7 +70,7 @@ export default function AdminMembersPage() {
 
   function handleSearch(event) {
     event.preventDefault();
-    updateQuery({ keyword: keywordInput.trim(), page: 0 });
+    updateQuery({ keyword: String(new FormData(event.currentTarget).get('keyword') ?? '').trim(), page: 0 });
   }
 
   function refresh() {
@@ -105,9 +106,10 @@ export default function AdminMembersPage() {
           <span className="mb-1 block text-sm font-medium">검색어</span>
           <input
             className="input input-bordered w-64"
-            value={keywordInput}
+            key={keyword}
+            name="keyword"
+            defaultValue={keyword}
             maxLength={100}
-            onChange={(event) => setKeywordInput(event.target.value)}
             placeholder="아이디·닉네임·이메일"
           />
         </label>

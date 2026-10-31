@@ -49,15 +49,16 @@ public class ImageController {
     public ResponseEntity<Resource> get(@PathVariable Long imageId, @AuthenticationPrincipal AuthMember viewer) {
         ImageService.ImageContent content = imageService.get(imageId, viewer);
 
-        // 경매에 쓰인 상품 이미지는 바뀌거나 지워지지 않으므로 하루 동안 캐시해도 된다.
-        // 프로필 이미지는 교체·삭제될 수 있어 짧게(10분) 둔다. 올린 본인에게만 보이는 이미지는 공유 캐시에 남기지 않는다.
+        // 경매에 쓰인 상품 이미지는 바뀌거나 지워지지 않지만, 경매가 중단되면 비공개로 바뀌므로 짧게(5분) 캐시한다.
+        // 중단 전에 받아 간 공개 사본이 공유 캐시와 브라우저에 남는 시간이 이만큼이다.
+        // 프로필 이미지는 교체·삭제될 수 있어 10분 둔다. 올린 본인 등에게만 보이는 이미지는 공유 캐시에 남기지 않는다.
         CacheControl cacheControl;
         if (!content.isPublic()) {
             cacheControl = CacheControl.noStore().cachePrivate();
         } else if (content.usageType() == ImageUsage.PROFILE) {
             cacheControl = CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic();
         } else {
-            cacheControl = CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic();
+            cacheControl = CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic();
         }
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(content.contentType()))

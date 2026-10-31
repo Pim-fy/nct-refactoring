@@ -27,6 +27,7 @@ import negocut.file.entity.ImageFile;
 import negocut.file.entity.ImageUsage;
 import negocut.file.repository.ImageFileRepository;
 import negocut.member.entity.Member;
+import negocut.member.entity.MemberRole;
 import negocut.member.entity.MemberStatus;
 import negocut.member.repository.MemberRepository;
 
@@ -84,7 +85,8 @@ public class ImageService {
         return ImageUploadResponse.from(saved);
     }
 
-    // 현재 프로필로 쓰는 프로필 이미지와 경매에 쓰인 상품 이미지는 누구나 볼 수 있다.
+    // 현재 프로필로 쓰는 프로필 이미지와 경매에 쓰인 상품 이미지는 누구나 볼 수 있다. 다만 중단된 경매의 상품 이미지는 공개하지 않고,
+    // 그 경매의 상세를 볼 수 있는 사람(판매자·입찰한 적 있는 회원)과 관리자만 본다. (기능 명세서 3-10 경매 강제 종료·숨김)
     // 아직 프로필로 쓰지 않았거나 경매에 쓰지 않은 이미지는 올린 본인만 본다.
     // 볼 수 없는 경우에는 이미지가 있는지 알리지 않으려고 없는 이미지와 같은 404로 응답한다.
     @Transactional(readOnly = true)
@@ -93,7 +95,7 @@ public class ImageService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.FILE_NOT_FOUND));
 
         boolean isPublic = isPublic(image);
-        if (!isPublic && !isUploader(image, viewer)) {
+        if (!isPublic && !isUploader(image, viewer) && !canViewStoppedProductImage(image, viewer)) {
             throw new BusinessException(ErrorCode.FILE_NOT_FOUND);
         }
 
@@ -139,7 +141,19 @@ public class ImageService {
         if (image.getUsageType() == ImageUsage.PROFILE) {
             return memberRepository.existsByProfileImageId(image.getId());
         }
-        return productImageRepository.existsByImageFileId(image.getId());
+        return productImageRepository.existsPublicByImageFileId(image.getId());
+    }
+
+    // 중단된 경매의 상품 이미지를 볼 수 있는 사람인지. 관리자는 모두, 회원은 그 경매의 판매자와 입찰한 적 있는 회원이다.
+    // 중단되지 않은 경매의 이미지는 이미 공개이므로 여기까지 오는 상품 이미지 중 상품에 연결된 것은 모두 중단된 경매의 이미지다.
+    private boolean canViewStoppedProductImage(ImageFile image, AuthMember viewer) {
+        if (viewer == null || image.getUsageType() != ImageUsage.PRODUCT) {
+            return false;
+        }
+        if (viewer.role() == MemberRole.ADMIN) {
+            return productImageRepository.existsByImageFileId(image.getId());
+        }
+        return productImageRepository.existsStoppedAuctionParticipant(image.getId(), viewer.memberId());
     }
 
     private boolean isUploader(ImageFile image, AuthMember member) {

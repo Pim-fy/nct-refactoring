@@ -12,6 +12,9 @@ public final class ReasonText {
     // 줄바꿈과 탭을 뺀 제어 문자. NUL 같은 값이 사유로 저장되지 않게 거부한다.
     private static final Pattern CONTROL = Pattern.compile("[\\p{Cc}&&[^\\n\\r\\t]]");
 
+    // 글자 순서를 뒤집어 보이게 하는 방향 전환 문자(LRE·RLE·PDF·LRO·RLO와 LRI·RLI·FSI·PDI). 사유는 판매자와 입찰자 화면에 그대로 보이므로 거부한다.
+    private static final Pattern BIDI = Pattern.compile("[\\u202A-\\u202E\\u2066-\\u2069]");
+
     private ReasonText() {
     }
 
@@ -19,8 +22,8 @@ public final class ReasonText {
         return text == null ? null : EDGE_SPACES.matcher(text).replaceAll("");
     }
 
-    // 앞뒤를 지운 사유가 읽을 수 있는 글자를 하나 이상 담고 제어 문자가 없으면 true다.
+    // 앞뒤를 지운 사유가 읽을 수 있는 글자를 하나 이상 담고 제어 문자와 방향 전환 문자가 없으면 true다.
     public static boolean isMeaningful(String trimmed) {
-        return trimmed != null && VISIBLE.matcher(trimmed).find() && !CONTROL.matcher(trimmed).find();
+        return trimmed != null && VISIBLE.matcher(trimmed).find() && !CONTROL.matcher(trimmed).find() && !BIDI.matcher(trimmed).find();
     }
 }
