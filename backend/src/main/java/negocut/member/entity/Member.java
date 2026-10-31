@@ -82,6 +82,25 @@ public class Member extends BaseTimeEntity {
         return member;
     }
 
+    // 관리자가 이용 제한을 걸거나 수준을 바꾼다. 현재 상태를 제한 수준으로 바꾸며, 탈퇴 회원에는 쓸 수 없다. (기능 명세서 2-2)
+    public void restrict(MemberStatus level) {
+        if (level != MemberStatus.RESTRICTED_TRADE && level != MemberStatus.RESTRICTED_LOGIN) {
+            throw new IllegalArgumentException("이용 제한 수준이 아닙니다. level=" + level);
+        }
+        if (memberStatus == MemberStatus.WITHDRAWN) {
+            throw new IllegalStateException("탈퇴한 회원은 이용 제한을 걸 수 없습니다. memberId=" + id);
+        }
+        this.memberStatus = level;
+    }
+
+    // 관리자가 이용 제한을 해제하면 정상으로 돌아간다. 제한 중인 회원에만 쓸 수 있다.
+    public void releaseRestriction() {
+        if (memberStatus != MemberStatus.RESTRICTED_TRADE && memberStatus != MemberStatus.RESTRICTED_LOGIN) {
+            throw new IllegalStateException("이용 제한 중인 회원이 아닙니다. memberId=" + id);
+        }
+        this.memberStatus = MemberStatus.NORMAL;
+    }
+
     // 프로필로 쓰던 이미지를 지울 때 참조를 비운다. 화면은 이때 기본 이미지를 보여준다. (기능 명세서 3-3)
     public void clearProfileImage() {
         this.profileImageId = null;
