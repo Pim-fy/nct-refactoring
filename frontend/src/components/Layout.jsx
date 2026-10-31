@@ -51,6 +51,9 @@ export default function Layout() {
                     <Link to="/my/points" className="btn btn-sm btn-ghost text-neutral-content">
                       포인트
                     </Link>
+                    <Link to="/my/reports" className="btn btn-sm btn-ghost text-neutral-content">
+                      내 신고 내역
+                    </Link>
                   </>
                 )}
                 {user.memberRole === 'ADMIN' && (

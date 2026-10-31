@@ -5,6 +5,7 @@ import { resolveImageUrl } from '../api/imageApi';
 import { confirmPurchase, fetchTrade } from '../api/tradeApi';
 import DeliveryForm from '../components/DeliveryForm';
 import Modal from '../components/Modal';
+import ReportModal from '../components/ReportModal';
 import ShipmentForm from '../components/ShipmentForm';
 import TradeCancelPanel from '../components/TradeCancelPanel';
 import TradeDisputePanel from '../components/TradeDisputePanel';
@@ -126,6 +127,7 @@ function TradeDetailView({ trade, onChanged }) {
   const { delivery, availableActions: actions } = trade;
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);   // 확정을 보낸 뒤 상세를 다시 받기 전까지 버튼을 다시 누르지 못하게 한다.
   const thumbnail = resolveImageUrl(trade.auction.thumbnailUrl);
   const isSeller = trade.myRole === 'SELLER';
@@ -174,6 +176,9 @@ function TradeDetailView({ trade, onChanged }) {
             {isSeller ? '낙찰자' : '판매자'} {trade.counterparty.maskedNickname}
           </p>
           <p className="text-lg font-bold text-primary">낙찰 금액 {formatWon(trade.tradePrice)}</p>
+          <button type="button" className="btn btn-xs btn-ghost mt-1 text-error" onClick={() => setReporting(true)}>
+            거래 신고하기
+          </button>
         </div>
       </div>
 
@@ -236,6 +241,8 @@ function TradeDetailView({ trade, onChanged }) {
 
       <TradeCancelPanel trade={trade} onChanged={onChanged} />
       <TradeDisputePanel trade={trade} onChanged={onChanged} />
+
+      <ReportModal open={reporting} targetType="TRADE" targetId={trade.tradeId} targetLabel={trade.auction.productName} onClose={() => setReporting(false)} />
 
       <Modal open={confirming} title="구매를 확정할까요?" onClose={() => setConfirming(false)}>
         <p className="mb-4 rounded bg-warning/20 p-3 text-sm">

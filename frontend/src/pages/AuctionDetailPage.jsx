@@ -5,6 +5,7 @@ import { fetchAuction } from '../api/auctionApi';
 import { resolveImageUrl } from '../api/imageApi';
 import BidHistory from '../components/BidHistory';
 import BidPanel from '../components/BidPanel';
+import ReportModal from '../components/ReportModal';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { AUCTION_STATUS_BADGES, AUCTION_STATUS_LABELS, formatDateTime, formatRemaining, formatWon } from '../utils/format';
@@ -128,6 +129,7 @@ function AuctionDetailView({ auction, version, onChanged }) {
   const { user } = useAuth();
   const { product, terms, bidding, seller } = auction;
   const [selected, setSelected] = useState(0);
+  const [reporting, setReporting] = useState(false);
   const images = product.images;
   const current = images[selected];
   const inProgress = auction.auctionStatus === 'IN_PROGRESS';
@@ -197,6 +199,15 @@ function AuctionDetailView({ auction, version, onChanged }) {
             판매자 {seller.maskedNickname}
             {seller.isMine && ' (내가 등록한 경매)'}
           </p>
+          {/* 신고 버튼은 회원에게만 보여 준다. 본인 경매와 중단된 경매는 신고할 수 없다. */}
+          {user?.memberRole === 'MEMBER' && !seller.isMine && auction.auctionStatus !== 'STOPPED' && (
+            <>
+              <button type="button" className="btn btn-xs btn-ghost mt-1 text-error" onClick={() => setReporting(true)}>
+                신고하기
+              </button>
+              <ReportModal open={reporting} targetType="AUCTION" targetId={auction.auctionId} targetLabel={product.name} onClose={() => setReporting(false)} />
+            </>
+          )}
 
           <div className="mt-4 rounded-box bg-base-200 p-4">
             <p className="text-sm text-base-content/60">{hasBid ? '현재가' : '입찰 없음 · 시작가'}</p>
