@@ -102,6 +102,18 @@ public class Auction extends BaseTimeEntity {
         this.closedAt = closedAt;
     }
 
+    // 관리자가 등록 또는 진행 중인 경매를 중단한다. 중단한 경매는 목록에서 빠지고 입찰을 받지 않는다. 사유·관리자·시각을 남긴다. (기능 명세서 3-10 경매 강제 종료·숨김)
+    // 남은 예약 포인트의 해제는 호출하는 쪽이 같은 트랜잭션에서 한다.
+    public void stop(String reason, Long adminId, LocalDateTime stoppedAt) {
+        if (auctionStatus != AuctionStatus.REGISTERED && auctionStatus != AuctionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("등록 또는 진행 중인 경매만 중단할 수 있습니다. auctionId=" + id + ", status=" + auctionStatus);
+        }
+        this.auctionStatus = AuctionStatus.STOPPED;
+        this.stoppedReason = reason;
+        this.stoppedByAdminId = adminId;
+        this.stoppedAt = stoppedAt;
+    }
+
     // 1차에서는 등록하면 바로 진행 상태로 공개한다. (기능 명세서 2-2)
     public static Auction register(Product product, Member seller, BigDecimal startPrice, BigDecimal bidUnit, LocalDateTime endAt) {
         Auction auction = new Auction();

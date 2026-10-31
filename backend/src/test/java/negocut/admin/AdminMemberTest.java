@@ -462,6 +462,8 @@ class AdminMemberTest {
         for (String invisible : new String[] {"\\u115f\\u1160", "\\uffa0", "\\u034f", "\\ufe0f", "\\u2800", "\\u0000", "\\u0007"}) {
             restrict(cookie, id, restrictBody("RESTRICTED_TRADE", true, null, invisible, null)).andExpect(status().isBadRequest());
         }
+        // 글자 순서를 뒤집는 방향 전환 문자가 섞이면 400이다.
+        restrict(cookie, id, restrictBody("RESTRICTED_TRADE", true, null, "금지\\u202e물품", null)).andExpect(status().isBadRequest());
         // 읽을 수 있는 글자가 있어도 제어 문자(NUL)가 섞이면 400이다.
         restrict(cookie, id, restrictBody("RESTRICTED_TRADE", true, null, "사유\\u0000", null)).andExpect(status().isBadRequest());
         restrict(cookie, id, restrictBody("RESTRICTED_TRADE", true, null, "가".repeat(501), null)).andExpect(status().isBadRequest());
