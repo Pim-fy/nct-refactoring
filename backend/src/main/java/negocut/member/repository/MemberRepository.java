@@ -2,6 +2,8 @@ package negocut.member.repository;
 
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -36,4 +38,12 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     boolean existsByNicknameAndEmailAndMemberStatusNot(String nickname, String email, MemberStatus status);
 
     boolean existsByLoginIdAndEmailAndMemberStatusNot(String loginId, String email, MemberStatus status);
+
+    // 관리자 회원 목록. 상태가 null이면 모든 상태이고, 검색어는 아이디·닉네임·이메일에 포함되는지 본다.
+    // 검색어는 호출하는 쪽에서 %와 _를 '!'로 이스케이프해 앞뒤에 %를 붙여 넘긴다. (MySQL은 '\'를 이스케이프 문자로 쓸 수 없어 '!'를 쓴다.)
+    @Query(value = "select m from Member m where (:status is null or m.memberStatus = :status) "
+            + "and (m.loginId like :keyword escape '!' or m.nickname like :keyword escape '!' or m.email like :keyword escape '!')",
+            countQuery = "select count(m) from Member m where (:status is null or m.memberStatus = :status) "
+            + "and (m.loginId like :keyword escape '!' or m.nickname like :keyword escape '!' or m.email like :keyword escape '!')")
+    Page<Member> searchForAdmin(MemberStatus status, String keyword, Pageable pageable);
 }

@@ -23,6 +23,11 @@ public enum ErrorCode {
     MEMBER_ID_DUPLICATED(HttpStatus.BAD_REQUEST, "이미 사용 중인 아이디입니다."),
     MEMBER_NICKNAME_DUPLICATED(HttpStatus.BAD_REQUEST, "이미 사용 중인 닉네임입니다."),
     MEMBER_EMAIL_DUPLICATED(HttpStatus.BAD_REQUEST, "이미 사용 중인 이메일입니다."),
+    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."),
+    MEMBER_ALREADY_WITHDRAWN(HttpStatus.CONFLICT, "탈퇴한 회원입니다."),
+    MEMBER_ALREADY_RESTRICTED(HttpStatus.CONFLICT, "이미 이용이 제한된 회원입니다. 현재 제한을 확인한 뒤 교체해 주세요."),
+    MEMBER_NOT_RESTRICTED(HttpStatus.CONFLICT, "이용이 제한된 회원이 아닙니다."),
+    MEMBER_RESTRICTION_CHANGED(HttpStatus.CONFLICT, "확인하신 뒤 이용 제한이 바뀌었습니다. 현재 제한을 다시 확인해 주세요."),
 
     // 카테고리
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "카테고리를 찾을 수 없습니다."),
