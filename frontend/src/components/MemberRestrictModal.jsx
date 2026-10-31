@@ -172,14 +172,14 @@ export default function MemberRestrictModal({ member, onClose, onDone, onStale }
             required
             aria-invalid={reason !== '' && reasonProblem !== null}
             onChange={(event) => setReason(event.target.value)}
-            aria-describedby="restriction-reason-count"
+            aria-describedby={reasonProblem ? 'restriction-reason-count restriction-problem' : 'restriction-reason-count'}
           />
           <p id="restriction-reason-count" className={`mt-1 text-xs ${trimmedReason.length > MAX_REASON ? 'text-error' : 'text-base-content/60'}`}>
             {trimmedReason.length} / {MAX_REASON}
           </p>
 
           {problem && (
-            <p id="restriction-problem" role="status" className="mt-3 text-sm text-base-content/70">
+            <p id="restriction-problem" role={reason !== '' || confirmed ? 'status' : undefined} className="mt-3 text-sm text-base-content/70">
               {problem}
             </p>
           )}
