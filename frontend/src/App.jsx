@@ -3,6 +3,7 @@ import AdminLayout from './components/AdminLayout';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
+import AdminMembersPage from './pages/admin/AdminMembersPage';
 import AuctionDetailPage from './pages/AuctionDetailPage';
 import AuctionRegisterPage from './pages/AuctionRegisterPage';
 import HomePage from './pages/HomePage';
@@ -37,6 +38,7 @@ export default function App() {
         </Route>
         <Route element={<ProtectedRoute role="ADMIN" />}>
           <Route element={<AdminLayout />}>
+            <Route path="/admin/members" element={<AdminMembersPage />} />
             <Route path="/admin/categories" element={<AdminCategoriesPage />} />
           </Route>
         </Route>

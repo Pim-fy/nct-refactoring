@@ -110,3 +110,34 @@ export const REPORT_ACTION_LABELS = {
   MEMBER_RESTRICTED: '회원 이용 제한',
   REJECTED: '반려',
 };
+
+// 회원 상태 코드를 화면 문구로 바꾼다. (기능 명세서 2-2)
+export const MEMBER_STATUS_LABELS = {
+  NORMAL: '정상',
+  RESTRICTED_TRADE: '거래 제한',
+  RESTRICTED_LOGIN: '로그인 정지',
+  WITHDRAWN: '탈퇴',
+};
+
+export const MEMBER_STATUS_BADGES = {
+  NORMAL: 'badge-success',
+  RESTRICTED_TRADE: 'badge-warning',
+  RESTRICTED_LOGIN: 'badge-error',
+  WITHDRAWN: 'badge-neutral',
+};
+
+// 이용 제한 기간 문구. 영구이거나 "2026.10.06 00:00까지"다. 기간이 끝나도 관리자가 해제하기 전에는 제한이 유지된다.
+export function formatRestrictionPeriod(restriction) {
+  return restriction.isPermanent ? '영구' : `${formatDateTime(restriction.expiresAt)}까지`;
+}
+
+// 사유에 사람이 읽을 수 있는 글자가 하나 이상 있고 제어 문자(줄바꿈·탭 제외)가 없는지. 서버(ReasonText)와 같은 규칙이다.
+// 공백·제어·서식 문자, 결합 문자(변형 선택자 등), 한글 채움 문자류와 점자 빈칸만으로 된 사유는 글자가 없는 것으로 본다.
+export function isMeaningfulReason(text) {
+  return /[^\p{Z}\p{C}\p{M}ㅤᅟᅠﾠ⠀]/u.test(text) && !/(?![\n\r\t])\p{Cc}/u.test(text);
+}
+
+// 입력한 사유의 앞뒤 공백(NBSP·전각·제로폭·서식 문자와 한글 채움 문자 포함)을 서버와 같이 지운다.
+export function trimReason(text) {
+  return text.replace(/^[\p{Z}\s\p{Cf}ㅤ⠀]+|[\p{Z}\s\p{Cf}ㅤ⠀]+$/gu, '');
+}

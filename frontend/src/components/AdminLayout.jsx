@@ -1,8 +1,11 @@
 import { NavLink, Outlet } from 'react-router-dom';
 
 // 관리자 화면의 공통 구조: 좌측 메뉴 + 본문 (화면 설계서 관리자 화면).
-// 메뉴는 구현된 기능만 둔다. 신고·분쟁·경매·회원 관리는 해당 기능을 만들 때 추가한다.
-const MENUS = [{ to: '/admin/categories', label: '카테고리 관리' }];
+// 메뉴는 구현된 기능만 둔다. 신고·분쟁·경매 관리는 해당 기능을 만들 때 추가한다.
+const MENUS = [
+  { to: '/admin/members', label: '회원 관리' },
+  { to: '/admin/categories', label: '카테고리 관리' },
+];
 
 export default function AdminLayout() {
   return (
