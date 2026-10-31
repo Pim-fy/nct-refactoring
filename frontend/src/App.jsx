@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import MyAuctionsPage from './pages/MyAuctionsPage';
 import MyBidsPage from './pages/MyBidsPage';
+import MyReportsPage from './pages/MyReportsPage';
 import MyTradesPage from './pages/MyTradesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import PointPage from './pages/PointPage';
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/my/trades" element={<MyTradesPage />} />
           <Route path="/my/trades/:id" element={<TradeDetailPage />} />
           <Route path="/my/points" element={<PointPage />} />
+          <Route path="/my/reports" element={<MyReportsPage />} />
         </Route>
         <Route element={<ProtectedRoute role="ADMIN" />}>
           <Route element={<AdminLayout />}>

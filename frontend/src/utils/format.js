@@ -89,3 +89,24 @@ export const TRADE_STATUS_BADGES = {
 };
 
 export const TRADE_ROLE_LABELS = { SELLER: '판매', BUYER: '구매' };
+
+// 신고 코드를 화면 문구로 바꾼다. (기능 명세서 3-9)
+export const REPORT_REASON_LABELS = {
+  FALSE_INFO: '허위·과장 정보',
+  PROHIBITED_ITEM: '금지 물품',
+  TRADE_MISCONDUCT: '거래 미이행·불성실',
+  INAPPROPRIATE_OR_ETC: '부적절 행위·기타',
+};
+
+export const REPORT_TARGET_LABELS = { AUCTION: '경매', MEMBER: '회원', TRADE: '거래' };
+
+export const REPORT_STATUS_LABELS = { RECEIVED: '접수', PROCESSED: '처리 완료', REJECTED: '반려' };
+
+export const REPORT_STATUS_BADGES = { RECEIVED: 'badge-ghost', PROCESSED: 'badge-success', REJECTED: 'badge-neutral' };
+
+// 처리 결과. 처리 사유와 처리한 관리자는 보여 주지 않는다.
+export const REPORT_ACTION_LABELS = {
+  AUCTION_STOPPED: '경매 중단',
+  MEMBER_RESTRICTED: '회원 이용 제한',
+  REJECTED: '반려',
+};
