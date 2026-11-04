@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminAuctionsPage from './pages/admin/AdminAuctionsPage';
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
+import AdminDisputesPage from './pages/admin/AdminDisputesPage';
 import AdminMembersPage from './pages/admin/AdminMembersPage';
 import AuctionDetailPage from './pages/AuctionDetailPage';
 import AuctionRegisterPage from './pages/AuctionRegisterPage';
@@ -41,6 +42,7 @@ export default function App() {
           <Route element={<AdminLayout />}>
             <Route path="/admin/members" element={<AdminMembersPage />} />
             <Route path="/admin/auctions" element={<AdminAuctionsPage />} />
+            <Route path="/admin/disputes" element={<AdminDisputesPage />} />
             <Route path="/admin/categories" element={<AdminCategoriesPage />} />
           </Route>
         </Route>

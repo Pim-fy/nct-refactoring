@@ -38,7 +38,7 @@ public record TradeDetailResponse(
     public record CancelRequestInfo(Long requestId, TradeRole requesterRole, String reason,
             CancelRequestStatus requestStatus, OffsetDateTime createdAt) {
 
-        static CancelRequestInfo of(TradeCancelRequest request, Trade trade) {
+        public static CancelRequestInfo of(TradeCancelRequest request, Trade trade) {
             TradeRole requesterRole = request.getRequester().getId().equals(trade.getSeller().getId()) ? TradeRole.SELLER : TradeRole.BUYER;
             return new CancelRequestInfo(request.getId(), requesterRole, request.getReason(), request.getRequestStatus(),
                     TradeSummaryResponse.toOffset(request.getCreatedAt()));
@@ -61,13 +61,24 @@ public record TradeDetailResponse(
 
     public record Schedule(OffsetDateTime shipDueAt, OffsetDateTime confirmDueAt, OffsetDateTime confirmedAt,
             OffsetDateTime completedAt, boolean isAutoConfirmed, boolean isUnfulfilled, OffsetDateTime unfulfilledAt) {
+
+        public static Schedule of(Trade trade) {
+            return new Schedule(
+                    TradeSummaryResponse.toOffset(trade.getShipDueAt()),
+                    TradeSummaryResponse.toOffset(trade.getConfirmDueAt()),
+                    TradeSummaryResponse.toOffset(trade.getConfirmedAt()),
+                    TradeSummaryResponse.toOffset(trade.getCompletedAt()),
+                    trade.isAutoConfirmed(),
+                    trade.isUnfulfilled(),
+                    TradeSummaryResponse.toOffset(trade.getUnfulfilledAt()));
+        }
     }
 
     // 배송지 입력 전에는 delivery 전체가 null이고, 입력 후 발송 전에는 운송장 관련 필드만 null이다.
     public record DeliveryInfo(String receiverName, String receiverPhone, String zipCode, String address,
             String addressDetail, String deliveryMessage, String courierName, String trackingNumber, OffsetDateTime shippedAt) {
 
-        static DeliveryInfo of(TradeDelivery delivery) {
+        public static DeliveryInfo of(TradeDelivery delivery) {
             return new DeliveryInfo(delivery.getReceiverName(), delivery.getReceiverPhone(), delivery.getZipCode(),
                     delivery.getAddress(), delivery.getAddressDetail(), delivery.getDeliveryMessage(),
                     delivery.getCourierName(), delivery.getTrackingNumber(), TradeSummaryResponse.toOffset(delivery.getShippedAt()));
@@ -88,14 +99,7 @@ public record TradeDetailResponse(
                         trade.getAuctionResult().getAuction().getId(),
                         trade.getAuctionResult().getAuction().getProduct().getName(),
                         thumbnailImageId == null ? null : "/api/images/" + thumbnailImageId),
-                new Schedule(
-                        TradeSummaryResponse.toOffset(trade.getShipDueAt()),
-                        TradeSummaryResponse.toOffset(trade.getConfirmDueAt()),
-                        TradeSummaryResponse.toOffset(trade.getConfirmedAt()),
-                        TradeSummaryResponse.toOffset(trade.getCompletedAt()),
-                        trade.isAutoConfirmed(),
-                        trade.isUnfulfilled(),
-                        TradeSummaryResponse.toOffset(trade.getUnfulfilledAt())),
+                Schedule.of(trade),
                 delivery == null ? null : DeliveryInfo.of(delivery),
                 cancelRequest == null ? null : CancelRequestInfo.of(cancelRequest, trade),
                 dispute == null ? null : DisputeInfo.of(dispute, memberId),

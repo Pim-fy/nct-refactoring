@@ -33,6 +33,16 @@ export default function AdminAuctionsPage() {
     fetchAdminAuctions({ page, size: PAGE_SIZE, status: status || undefined, keyword: keyword || undefined })
       .then((data) => {
         if (cancelled) return;
+        // 마지막 페이지의 마지막 항목을 처리해 페이지가 비면 마지막 페이지로 옮긴다.
+        if (data.content.length === 0 && page > 0 && data.totalPages > 0) {
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            if (data.totalPages - 1 === 0) next.delete('page');
+            else next.set('page', String(data.totalPages - 1));
+            return next;
+          });
+          return;
+        }
         setResult({ key: queryKey, data, failed: false });
         // 새 목록에 모달 대상이 없으면 대상을 비워, 나중에 모달이 불쑥 다시 열리지 않게 한다.
         setStopId((id) => (id !== null && data.content.some((auction) => auction.auctionId === id) ? id : null));
@@ -46,7 +56,7 @@ export default function AdminAuctionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, status, keyword, queryKey, toast]);
+  }, [page, status, keyword, queryKey, setSearchParams, toast]);
 
   // 새로 받는 동안에도 이전 목록을 흐리게 보여 줘, 열려 있는 모달이 대상을 잃지 않게 한다.
   const loading = result.key !== queryKey;

@@ -1,6 +1,7 @@
 package negocut.trade.entity;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -36,6 +37,9 @@ import negocut.member.entity.Member;
 public class Trade extends BaseTimeEntity {
 
     private static final int CONFIRM_DUE_DAYS = 10;
+
+    // 분쟁 판정으로 거래를 되돌릴 때 당사자에게 남겨 주는 최소 시간. 원래 기한이 이보다 임박했거나 지났으면 복귀 시각부터 이 시간으로 정한다.
+    public static final Duration RESUME_MIN_DUE = Duration.ofHours(2);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -111,6 +115,39 @@ public class Trade extends BaseTimeEntity {
     public void complete(LocalDateTime completedAt) {
         this.tradeStatus = TradeStatus.COMPLETED;
         this.completedAt = completedAt;
+    }
+
+    // 거래 진행 판정으로 접수 직전 상태로 되돌릴 때의 기한. 접수 직전이 준비면 발송 기한, 진행이면 구매 확정 기한을 본다.
+    // 원래 기한까지 최소 시간(2시간) 이상 남았으면 원래 기한을 그대로 쓰고, 그보다 임박했거나 지났으면 복귀 시각부터 최소 시간으로 정한다.
+    public ResumeDue planResume(TradeStatus previous, LocalDateTime now) {
+        TradeDueType type = previous == TradeStatus.READY ? TradeDueType.SHIP : TradeDueType.CONFIRM;
+        LocalDateTime current = type == TradeDueType.SHIP ? shipDueAt : confirmDueAt;
+        LocalDateTime floor = now.plus(RESUME_MIN_DUE);
+        boolean adjusted = current == null || current.isBefore(floor);
+        return new ResumeDue(type, current, adjusted ? floor : current, adjusted);
+    }
+
+    // 분쟁 상태의 거래를 접수 직전 상태(준비 또는 진행)로 되돌리고 기한을 정한다. 발송 기한을 새로 정하면 이미 붙은 미이행 표시는 지운다.
+    public ResumeDue resume(TradeStatus previous, LocalDateTime now) {
+        if (tradeStatus != TradeStatus.DISPUTED || (previous != TradeStatus.READY && previous != TradeStatus.IN_PROGRESS)) {
+            throw new IllegalStateException("분쟁 상태의 거래만 준비·진행으로 되돌릴 수 있습니다. tradeId=" + id + ", status=" + tradeStatus + ", previous=" + previous);
+        }
+        ResumeDue due = planResume(previous, now);
+        this.tradeStatus = previous;
+        if (due.dueType() == TradeDueType.SHIP) {
+            this.shipDueAt = due.resumedDueAt();
+            if (due.adjusted()) {
+                this.unfulfilled = false;
+                this.unfulfilledAt = null;
+            }
+        } else {
+            this.confirmDueAt = due.resumedDueAt();
+        }
+        return due;
+    }
+
+    // 되돌릴 때 정해지는 기한. adjusted가 true이면 원래 기한 대신 복귀 시각부터 최소 시간으로 정해진 것이다.
+    public record ResumeDue(TradeDueType dueType, LocalDateTime currentDueAt, LocalDateTime resumedDueAt, boolean adjusted) {
     }
 
     // 발송 기한을 넘겼다는 표시만 남기고 거래 상태는 바꾸지 않는다.
