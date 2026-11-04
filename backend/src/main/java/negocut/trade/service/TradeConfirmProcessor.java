@@ -82,6 +82,14 @@ public class TradeConfirmProcessor {
             return false;
         }
 
+        settlePayout(trade, LocalDateTime.now(ZONE));
+        return true;
+    }
+
+    // 낙찰자의 예약 포인트를 판매자에게 지급하고 거래를 완료로 바꾼다. 구매 확정 지급과 분쟁 판정의 지급이 함께 쓴다.
+    // 호출하는 쪽이 거래 행을 잠그고 상태를 확인한 트랜잭션 안에서 불러야 한다. 두 잔액 행은 여기서 회원 번호 순서로 잠근다.
+    public void settlePayout(Trade trade, LocalDateTime now) {
+        Long tradeId = trade.getId();
         Long buyerId = trade.getBuyer().getId();
         Long sellerId = trade.getSeller().getId();
         if (buyerId.equals(sellerId)) {
@@ -101,7 +109,6 @@ public class TradeConfirmProcessor {
         }
 
         pointService.payout(buyerBalance, trade.getBuyer(), sellerBalance, trade.getSeller(), trade.getTradePrice(), trade.getId());
-        trade.complete(LocalDateTime.now(ZONE));
-        return true;
+        trade.complete(now);
     }
 }

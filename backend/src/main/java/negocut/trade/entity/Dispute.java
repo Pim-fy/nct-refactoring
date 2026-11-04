@@ -84,6 +84,21 @@ public class Dispute extends BaseTimeEntity {
         return dispute;
     }
 
+    // 관리자가 판정한다. 처리 중인 분쟁만 판정할 수 있고, 보류 유지는 분쟁을 처리 중으로 둔 채 판정 결과만 남겨 다시 판정할 수 있다.
+    // 그 밖의 판정은 분쟁을 판정 완료로 닫는다. 판정 결과와 사유, 판정한 관리자, 판정 시각을 남긴다.
+    public void judge(DisputeJudgment judgment, String judgmentReason, Member admin, LocalDateTime judgedAt) {
+        if (disputeStatus != DisputeStatus.OPEN) {
+            throw new IllegalStateException("이미 판정이 끝난 분쟁입니다. disputeId=" + id);
+        }
+        this.judgment = judgment;
+        this.judgmentReason = judgmentReason;
+        this.admin = admin;
+        this.judgedAt = judgedAt;
+        if (judgment != DisputeJudgment.HOLD) {
+            this.disputeStatus = DisputeStatus.JUDGED;
+        }
+    }
+
     public boolean isProcessing() {
         return disputeStatus == DisputeStatus.OPEN;
     }

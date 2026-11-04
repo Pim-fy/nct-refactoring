@@ -52,6 +52,10 @@ public enum ErrorCode {
     TRADE_CANCEL_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "이 거래에서 낼 수 있는 취소 요청 횟수(3회)를 넘었습니다."),
     DISPUTE_ALREADY_OPEN(HttpStatus.CONFLICT, "처리 중인 분쟁이 있습니다."),
     DISPUTE_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "이 거래에서 접수할 수 있는 분쟁 횟수(3회)를 넘었습니다."),
+    DISPUTE_NOT_FOUND(HttpStatus.NOT_FOUND, "분쟁을 찾을 수 없습니다."),
+    DISPUTE_ALREADY_CLOSED(HttpStatus.CONFLICT, "이미 판정이 끝난 분쟁입니다."),
+    DISPUTE_CHANGED(HttpStatus.CONFLICT, "확인하신 뒤 다른 관리자가 이 분쟁을 판정(보류 포함)했습니다. 최신 내용을 확인한 뒤 다시 판정해 주세요."),
+    DISPUTE_JUDGMENT_NOT_ALLOWED(HttpStatus.CONFLICT, "발송이 등록되지 않은 거래는 지급으로 판정할 수 없습니다. 반환, 거래 진행, 보류 유지 중에서 판정해 주세요."),
 
     // 신고
     REPORT_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "신고할 대상을 찾을 수 없습니다."),
