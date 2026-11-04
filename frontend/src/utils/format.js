@@ -90,6 +90,27 @@ export const TRADE_STATUS_BADGES = {
 
 export const TRADE_ROLE_LABELS = { SELLER: '판매', BUYER: '구매' };
 
+// 분쟁 접수자·판정 문구. 처리 중인 분쟁이 판정 결과 HOLD를 가지면 보류 유지다. (기능 명세서 2-2, 3-10)
+export const DISPUTE_REPORTER_LABELS = { SELLER: '판매자', BUYER: '낙찰자' };
+
+export const DISPUTE_JUDGMENT_LABELS = {
+  REFUND: '반환',
+  PAYOUT: '지급',
+  RESUME: '거래 진행',
+  HOLD: '보류 유지',
+};
+
+// 분쟁 상태 문구. 보류 유지(처리 중이면서 판정 결과가 HOLD)는 따로 보여 준다.
+export function disputeStateLabel(disputeStatus, judgment) {
+  if (disputeStatus === 'JUDGED') return '판정 완료';
+  return judgment === 'HOLD' ? '보류 유지' : '처리 중';
+}
+
+export function disputeStateBadge(disputeStatus, judgment) {
+  if (disputeStatus === 'JUDGED') return 'badge-success';
+  return judgment === 'HOLD' ? 'badge-warning' : 'badge-error';
+}
+
 // 신고 코드를 화면 문구로 바꾼다. (기능 명세서 3-9)
 export const REPORT_REASON_LABELS = {
   FALSE_INFO: '허위·과장 정보',

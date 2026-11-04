@@ -68,11 +68,16 @@ export default function TradeDisputePanel({ trade, onChanged }) {
         <div className="mb-3 rounded bg-base-200 p-3 text-sm">
           <p className="font-medium">
             {dispute.disputeStatus === 'OPEN'
-              ? `${dispute.isMine ? '내가' : '상대방이'} 분쟁을 접수했습니다. 관리자 판정을 기다리는 중입니다.`
+              ? `${dispute.isMine ? '내가' : '상대방이'} 분쟁을 접수했습니다. ${
+                  dispute.judgment === 'HOLD' ? '관리자가 추가 확인을 위해 판정을 보류했습니다. 확인이 끝나면 다시 판정합니다.' : '관리자 판정을 기다리는 중입니다.'
+                }`
               : `${dispute.isMine ? '내가' : '상대방이'} 접수한 분쟁이 판정되었습니다.`}
           </p>
           <p className="mt-1 whitespace-pre-wrap text-base-content/80">사유: {dispute.reason}</p>
           <p className="mt-1 text-base-content/60">접수 {formatDateTime(dispute.createdAt)}</p>
+          {dispute.disputeStatus === 'OPEN' && dispute.judgment === 'HOLD' && dispute.judgedAt && (
+            <p className="mt-1">보류 유지 ({formatDateTime(dispute.judgedAt)})</p>
+          )}
           {dispute.disputeStatus === 'JUDGED' && (
             <p className="mt-1">
               판정: {JUDGMENT_LABELS[dispute.judgment] ?? dispute.judgment}
