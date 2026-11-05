@@ -61,6 +61,8 @@ public enum ErrorCode {
     REPORT_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "신고할 대상을 찾을 수 없습니다."),
     REPORT_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "이미 접수한 신고가 처리 중입니다."),
     REPORT_SELF_NOT_ALLOWED(HttpStatus.FORBIDDEN, "본인의 경매나 본인 자신은 신고할 수 없습니다."),
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "신고를 찾을 수 없습니다."),
+    REPORT_ALREADY_PROCESSED(HttpStatus.CONFLICT, "이미 처리된 신고입니다. 최신 처리 결과를 확인해 주세요."),
 
     // 입찰
     AUCTION_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 경매가 아닙니다."),

@@ -80,6 +80,17 @@ public class ReportService {
                 labels.get(report.getTargetType()).getOrDefault(report.getTargetId(), UNKNOWN_LABEL))));
     }
 
+    // 관리자 신고 목록용: 신고별 대상 표시 문구(신고 식별자 → 문구). 경매·거래는 상품명, 회원은 가린 닉네임이다.
+    @Transactional(readOnly = true)
+    public Map<Long, String> targetLabelsByReportId(List<Report> reports) {
+        Map<ReportTargetType, Map<Long, String>> labels = labelsOf(reports);
+        Map<Long, String> result = new HashMap<>();
+        for (Report report : reports) {
+            result.put(report.getId(), labels.get(report.getTargetType()).getOrDefault(report.getTargetId(), UNKNOWN_LABEL));
+        }
+        return result;
+    }
+
     // 신고할 수 있는 대상인지 확인한다. 없거나 신고 대상이 아니면 404, 본인 경매·본인 자신이면 403이다.
     private void requireReportableTarget(Long memberId, ReportTargetType type, Long targetId) {
         switch (type) {

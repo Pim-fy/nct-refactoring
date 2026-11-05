@@ -105,8 +105,8 @@ public class AdminMemberService {
         return new AdminMemberResponses.Released(memberId, member.getMemberStatus(), TradeSummaryResponse.toOffset(now));
     }
 
-    // 제한 요청의 입력을 확인하고 만료 시각(영구 제한이면 null)을 돌려준다.
-    private LocalDateTime validateRestriction(MemberRestrictRequest request, LocalDateTime now) {
+    // 제한 요청의 입력을 확인하고 만료 시각(영구 제한이면 null)을 돌려준다. 신고 처리가 이미 제한된 회원에게도 같은 입력 검사를 하도록 공개한다.
+    public LocalDateTime validateRestriction(MemberRestrictRequest request, LocalDateTime now) {
         MemberStatus level = request.restrictionLevel();
         if (level != MemberStatus.RESTRICTED_TRADE && level != MemberStatus.RESTRICTED_LOGIN) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
