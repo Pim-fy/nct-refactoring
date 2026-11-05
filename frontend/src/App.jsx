@@ -6,6 +6,7 @@ import AdminAuctionsPage from './pages/admin/AdminAuctionsPage';
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
 import AdminDisputesPage from './pages/admin/AdminDisputesPage';
 import AdminMembersPage from './pages/admin/AdminMembersPage';
+import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AuctionDetailPage from './pages/AuctionDetailPage';
 import AuctionRegisterPage from './pages/AuctionRegisterPage';
 import HomePage from './pages/HomePage';
@@ -42,6 +43,7 @@ export default function App() {
           <Route element={<AdminLayout />}>
             <Route path="/admin/members" element={<AdminMembersPage />} />
             <Route path="/admin/auctions" element={<AdminAuctionsPage />} />
+            <Route path="/admin/reports" element={<AdminReportsPage />} />
             <Route path="/admin/disputes" element={<AdminDisputesPage />} />
             <Route path="/admin/categories" element={<AdminCategoriesPage />} />
           </Route>
